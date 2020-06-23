@@ -2,68 +2,64 @@
 An extension of [Confluent's Kafka client](https://github.com/confluentinc/confluent-kafka-dotnet) for use with `Microsoft.Extensions.Hosting` (and friends).
 
 ### Features
-* Configure a Kafka consumer as an injected service.
-* Inject services into Kafka event handlers and serializers.
-* Configure a host to invoke/manage consumer.
+* Configure Kafka producers/consumers using `Microsoft.Extensions.DependencyInjection.IServiceCollection`.
 
 ## Installation
 
-Choose a NuGet package to add to your project.
-
-To configure a hosted consumer:
-
-    $ dotnet add package Confluent.Kafka.Hosting
-
-To inject a consumer as a service:
+Add the NuGet package to your project:
 
     $ dotnet add package Confluent.Kafka.DependencyInjection
 
 ## Usage
 
-Configure a hosted consumer:
-```c#
-var hostBuilder = new HostBuilder();
-hostBuilder.UseConsumer<MyConsumer, string, string>((_, consumer) =>
-    consumer.AddConfiguration(new ConsumerConfig
-    {
-        BootstrapServers = "localhost:9092",
-        GroupId = "test-group"
-    }).AddTopics(new[] { "test-topic" }));
-```
+Add the Kafka client:
 
-Implement `IHostedConsumer` to process messages:
 ```c#
-class MyConsumer : IHostedConsumer<string, string>
+services.AddKafkaClient(new Dictionary<string, string>
 {
-    public Task ConsumeAsync(Message<string, string> message, CancellationToken cancellationToken)
-    {
-        Console.WriteLine($"Consumed message: {new { message.Key, message.Value }}");
-        return Task.CompletedTask;
-    }
-}
+    { "bootstrap.servers", "localhost:9092" },
+    { "enable.idempotence", "true" },
+    { "group.id", "group1" }
+});
 ```
 
-Alternatively, register a consumer as a service:
+Optionally, configure message serialization:
+
 ```c#
-var services = new ServiceCollection();
-services.AddSingleton<MyService>()
-    .AddConsumer<string, string>()
-        .AddConfiguration(new ConsumerConfig
-        {
-            BootstrapServers = "localhost:9092",
-            GroupId = "test-group"
-        }).AddTopics(new[] { "test-topic" });
+// Use open generics to apply to all keys and values.
+services.AddSingleton(typeof(IAsyncDeserializer<>), typeof(AvroDeserializer<>));
+
+// Use closed generics to select type-specific serializers.
+services.AddSingleton<IAsyncSerializer<MyType>, JsonSerializer<MyType>>();
+
+// Synchronous serializers take precedence, if present.
+services.AddSingleton(sp => sp.GetRequiredService<IAsyncSerializer<MyType>>().AsSyncOverAsync());
+
+// Configure schema registry (required by some serializers).
+services.AddSingleton<ISchemaRegistryClient>(sp =>
+    new CachedSchemaRegistryClient(new SchemaRegistryConfig
+    {
+        Url = "localhost:8081"
+    }));
 ```
 
-Inject consumer via constructor:
+Optionally, configure custom handlers for Kafka events:
+
 ```c#
-class MyService
-{
-    private readonly IConsumer<string, string> consumer;
-    
-    public MyService(IConsumer<string, string> consumer)
-    {
-        this.consumer = consumer;
-    }
-}
+services.AddTransient<IErrorHandler, MyHandler>()
+    .AddTransient<IStatisticsHandler, MyHandler>()
+    .AddTransient<ILogHandler, MyHandler>()
+    .AddTransient<IPartitionsAssignedHandler, MyHandler>()
+    .AddTransient<IPartitionsRevokedHandler, MyHandler>()
+    .AddTransient<IOffsetsCommittedHandler, MyHandler>();
+```
+
+Inject `IKafkaFactory` via constructor:
+
+```c#
+using var consumer = factory.CreateConsumer<MyType, MyOtherType>();
+
+// ...
+// Remember to close created consumers.
+consumer.Close();
 ```
