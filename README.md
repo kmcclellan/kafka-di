@@ -54,12 +54,25 @@ services.AddTransient<IErrorHandler, MyHandler>()
     .AddTransient<IOffsetsCommittedHandler, MyHandler>();
 ```
 
-Inject `IKafkaFactory` via constructor:
+Inject producers/consumers via constructor:
 
 ```c#
-using var consumer = factory.CreateConsumer<MyType, MyOtherType>();
+public MyService(IProducer<Ignore, string> producer)
+{
+    // Producer is a singleton managed by the container.
+    this.producer = producer;
+}
+```
+
+Alternatively, inject `IKafkaFactory` to override configuration and control lifespan:
+
+```c#
+using var consumer = factory.CreateConsumer<MyType, MyOtherType>(new ConsumerConfig
+{
+    GroupId = "group2"
+});
 
 // ...
-// Remember to close created consumers.
+// Remember to close manually created consumers.
 consumer.Close();
 ```
