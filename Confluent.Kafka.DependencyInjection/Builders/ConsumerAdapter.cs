@@ -10,25 +10,25 @@ namespace Confluent.Kafka.DependencyInjection.Builders
         public IDictionary<string, string> ClientConfig { get; } = new Dictionary<string, string>();
 
         public ConsumerAdapter(
+            HandlerHelper<IErrorHandler> errorHelper,
+            HandlerHelper<IStatisticsHandler> statisticsHelper,
+            HandlerHelper<ILogHandler> logHelper,
+            HandlerHelper<IPartitionsAssignedHandler> assignHelper,
+            HandlerHelper<IPartitionsRevokedHandler> revokeHelper,
+            HandlerHelper<IOffsetsCommittedHandler> commitHelper,
             ConfigWrapper? config = null,
-            IErrorHandler? errorHandler = null,
-            IStatisticsHandler? statisticsHandler = null,
-            ILogHandler? logHandler = null,
-            IPartitionsAssignedHandler? assignHandler = null,
-            IPartitionsRevokedHandler? revokeHandler = null,
-            IOffsetsCommittedHandler? commitHandler = null,
             IDeserializer<TKey>? keyDeserializer = null,
             IDeserializer<TValue>? valueDeserializer = null,
             IAsyncDeserializer<TKey>? asyncKeyDeserializer = null,
             IAsyncDeserializer<TValue>? asyncValueDeserializer = null)
                 : base(config?.Values)
         {
-            if (errorHandler != null) ErrorHandler += errorHandler.OnError;
-            if (statisticsHandler != null) StatisticsHandler += statisticsHandler.OnStatistics;
-            if (logHandler != null) LogHandler += logHandler.OnLog;
-            if (assignHandler != null) PartitionsAssignedHandler += assignHandler.OnPartitionsAssigned;
-            if (revokeHandler != null) PartitionsRevokedHandler += revokeHandler.OnPartitionsRevoked;
-            if (commitHandler != null) OffsetsCommittedHandler += commitHandler.OnOffsetsCommitted;
+            ErrorHandler = errorHelper.Resolve(x => x.OnError, ErrorHandler);
+            StatisticsHandler = statisticsHelper.Resolve(x => x.OnStatistics, StatisticsHandler);
+            LogHandler = logHelper.Resolve(x => x.OnLog, LogHandler);
+            PartitionsAssignedHandler = assignHelper.Resolve(x => x.OnPartitionsAssigned, PartitionsAssignedHandler);
+            PartitionsRevokedHandler = revokeHelper.Resolve(x => x.OnPartitionsRevoked, PartitionsRevokedHandler);
+            OffsetsCommittedHandler = commitHelper.Resolve(x => x.OnOffsetsCommitted, OffsetsCommittedHandler);
             KeyDeserializer = keyDeserializer ?? asyncKeyDeserializer?.AsSyncOverAsync();
             ValueDeserializer = valueDeserializer ?? asyncValueDeserializer?.AsSyncOverAsync();
 

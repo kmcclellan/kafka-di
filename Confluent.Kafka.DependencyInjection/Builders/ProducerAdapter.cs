@@ -9,19 +9,19 @@ namespace Confluent.Kafka.DependencyInjection.Builders
         public IDictionary<string, string> ClientConfig { get; } = new Dictionary<string, string>();
 
         public ProducerAdapter(
+            HandlerHelper<IErrorHandler> errorHelper,
+            HandlerHelper<IStatisticsHandler> statisticsHelper,
+            HandlerHelper<ILogHandler> logHelper,
             ConfigWrapper? config = null,
-            IErrorHandler? errorHandler = null,
-            IStatisticsHandler? statisticsHandler = null,
-            ILogHandler? logHandler = null,
             ISerializer<TKey>? keySerializer = null,
             ISerializer<TValue>? valueSerializer = null,
             IAsyncSerializer<TKey>? asyncKeySerializer = null,
             IAsyncSerializer<TValue>? asyncValueSerializer = null)
                 : base(config?.Values)
         {
-            if (errorHandler != null) ErrorHandler += errorHandler.OnError;
-            if (statisticsHandler != null) StatisticsHandler += statisticsHandler.OnStatistics;
-            if (logHandler != null) LogHandler += logHandler.OnLog;
+            ErrorHandler = errorHelper.Resolve(x => x.OnError, ErrorHandler);
+            StatisticsHandler = statisticsHelper.Resolve(x => x.OnStatistics, StatisticsHandler);
+            LogHandler = logHelper.Resolve(x => x.OnLog, LogHandler);
 
             KeySerializer = keySerializer;
             ValueSerializer = valueSerializer;

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Confluent.Kafka.DependencyInjection.Builders;
 using Confluent.Kafka.DependencyInjection.Clients;
+using Confluent.Kafka.DependencyInjection.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -29,6 +30,7 @@ namespace Confluent.Kafka.DependencyInjection
             services.TryAddSingleton<IKafkaFactory, KafkaFactory>();
             services.TryAddTransient(typeof(ProducerAdapter<,>));
             services.TryAddTransient(typeof(ConsumerAdapter<,>));
+            services.TryAddTransient(typeof(HandlerHelper<>));
 
             if (configuration != null)
             {
