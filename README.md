@@ -12,7 +12,7 @@ Add the NuGet package to your project:
 
 ## Usage
 
-Add the Kafka client:
+Add a global Kafka client:
 
 ```c#
 services.AddKafkaClient(new Dictionary<string, string>
@@ -20,6 +20,22 @@ services.AddKafkaClient(new Dictionary<string, string>
     { "bootstrap.servers", "localhost:9092" },
     { "enable.idempotence", "true" },
     { "group.id", "group1" }
+});
+```
+
+Alternatively, add typed clients with distinct configurations:
+
+```c#
+services.AddKafkaClient<MyService>(new ProducerConfig
+{
+    BootstrapServers = "localhost:9092",
+    EnableIdempotence = true
+});
+
+services.AddKafkaClient<MyOtherService>(new ConsumerConfig
+{
+    BootstrapServers = "somewhere.else:9092",
+    GroupId = "group1"
 });
 ```
 

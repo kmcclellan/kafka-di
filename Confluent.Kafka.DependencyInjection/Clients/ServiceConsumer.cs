@@ -6,13 +6,32 @@ using Confluent.Kafka.DependencyInjection.Builders;
 namespace Confluent.Kafka.DependencyInjection.Clients
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
+    class ServiceConsumer<TReceiver, TKey, TValue> : ServiceConsumer<TKey, TValue>
+    {
+        public ServiceConsumer(ConsumerAdapter<TKey, TValue> adapter, ConfigWrapper<TReceiver> config)
+            : base(adapter, config.Values) { }
+    }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
     class ServiceConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     {
         readonly IConsumer<TKey, TValue> consumer;
         bool closed;
 
-        public ServiceConsumer(ConsumerAdapter<TKey, TValue> adapter)
+        public ServiceConsumer(ConsumerAdapter<TKey, TValue> adapter) : this(adapter, null) { }
+
+        protected ServiceConsumer(
+            ConsumerAdapter<TKey, TValue> adapter,
+            IEnumerable<KeyValuePair<string, string>>? config)
         {
+            if (config != null)
+            {
+                foreach (var kvp in config)
+                {
+                    adapter.ClientConfig[kvp.Key] = kvp.Value;
+                }
+            }
+
             consumer = adapter.Build();
         }
 
