@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Confluent.Kafka.DependencyInjection.Builders;
 using Confluent.Kafka.DependencyInjection.Clients;
 using Confluent.Kafka.DependencyInjection.Handlers;
+using Confluent.Kafka.DependencyInjection.Handlers.Default;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -116,7 +117,14 @@ namespace Confluent.Kafka.DependencyInjection
         {
             services.TryAddTransient(typeof(ProducerAdapter<,>));
             services.TryAddTransient(typeof(ConsumerAdapter<,>));
+
             services.TryAddSingleton(typeof(HandlerHelper<>));
+            services.TryAddSingleton<IErrorHandler, GlobalHandler>();
+            services.TryAddSingleton<ILogHandler, GlobalHandler>();
+            services.TryAddSingleton<IPartitionsAssignedHandler, AssignmentHandler>();
+            services.TryAddSingleton<IPartitionsRevokedHandler, AssignmentHandler>();
+            services.TryAddSingleton<IOffsetsCommittedHandler, CommitHandler>();
+
             return services;
         }
     }

@@ -14,6 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Confluent.Kafka" Version="*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.0" />
   </ItemGroup>
 
 </Project>

@@ -3,6 +3,7 @@ An extension of [Confluent's Kafka client](https://github.com/confluentinc/confl
 
 ### Features
 * Configure Kafka producers/consumers using `Microsoft.Extensions.DependencyInjection.IServiceCollection`.
+* Default logging of asynchronous Kafka events through `Microsoft.Extensions.Logging.ILogger`.
 
 ## Installation
 
