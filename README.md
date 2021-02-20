@@ -1,5 +1,5 @@
-# Kafka Hosting
-An extension of [Confluent's Kafka client](https://github.com/confluentinc/confluent-kafka-dotnet) for use with `Microsoft.Extensions.Hosting` (and friends).
+# Kafka Dependency Injection
+An extension of [Confluent's Kafka client](https://github.com/confluentinc/confluent-kafka-dotnet) for use with `Microsoft.Extensions.DependencyInjection` (and friends).
 
 ### Features
 * Configure Kafka producers/consumers using `Microsoft.Extensions.DependencyInjection.IServiceCollection`.

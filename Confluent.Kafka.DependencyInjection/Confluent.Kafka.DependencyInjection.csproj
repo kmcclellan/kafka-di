@@ -16,13 +16,13 @@
     <Authors>Kyle McClellan</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>icon.png</PackageIcon>
-    <PackageProjectUrl>https://github.com/kmcclellan/kafka-hosting</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/kmcclellan/kafka-di</PackageProjectUrl>
     <Description>An extension of Confluent.Kafka for use with Microsoft.Extensions.DependencyInjection.</Description>
-    <PackageReleaseNotes>https://github.com/kmcclellan/kafka-hosting/releases/v$(Version)</PackageReleaseNotes>
+    <PackageReleaseNotes>https://github.com/kmcclellan/kafka-di/releases/v$(Version)</PackageReleaseNotes>
     <Copyright>%A9 2020 Kyle McClellan</Copyright>
     <PackageTags>kafka;confluent;dependencyinjection;di;ioc</PackageTags>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/kmcclellan/kafka-hosting.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/kmcclellan/kafka-di.git</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
