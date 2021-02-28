@@ -57,8 +57,14 @@ namespace Confluent.Kafka.DependencyInjection.Clients
         public void BeginTransaction() =>
             producer.BeginTransaction();
 
+        public void CommitTransaction() =>
+            this.producer.CommitTransaction();
+
         public void CommitTransaction(TimeSpan timeout) =>
             producer.CommitTransaction(timeout);
+
+        public void AbortTransaction() =>
+            this.producer.AbortTransaction();
 
         public void AbortTransaction(TimeSpan timeout) =>
             producer.AbortTransaction(timeout);

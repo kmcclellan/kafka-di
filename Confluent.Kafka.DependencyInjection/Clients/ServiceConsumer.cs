@@ -71,8 +71,17 @@ namespace Confluent.Kafka.DependencyInjection.Clients
         public void Assign(IEnumerable<TopicPartition> partitions) =>
             consumer.Assign(partitions);
 
+        public void IncrementalAssign(IEnumerable<TopicPartitionOffset> partitions) =>
+            this.consumer.IncrementalAssign(partitions);
+
+        public void IncrementalAssign(IEnumerable<TopicPartition> partitions) =>
+            this.consumer.IncrementalAssign(partitions);
+
         public void Unassign() =>
             consumer.Unassign();
+
+        public void IncrementalUnassign(IEnumerable<TopicPartition> partitions) =>
+            this.consumer.IncrementalUnassign(partitions);
 
         public void Seek(TopicPartitionOffset tpo) =>
             consumer.Seek(tpo);
