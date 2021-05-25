@@ -74,7 +74,7 @@ services.AddTransient<IErrorHandler, MyHandler>()
 Inject producers/consumers via constructor:
 
 ```c#
-public MyService(IProducer<Ignore, string> producer)
+public MyService(IProducer<Null, string> producer)
 {
     // Producer is a singleton managed by the container.
     this.producer = producer;
