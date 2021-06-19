@@ -22,19 +22,19 @@ namespace Confluent.Kafka.DependencyInjection.Handlers.Default
             {
                 if (group.Key.IsError)
                 {
-                    logger.LogKafkaOffsets(
-                        client,
-                        group.Key,
-                        $"Commit failed for offsets: {group.Key.Reason}",
-                        group);
+                    logger.Log(
+                        group.Key.IsFatal ? LogLevel.Critical : LogLevel.Error,
+                        LogEvents.FromError(group.Key.Code),
+                        new OffsetLogValues(
+                            client,
+                            group,
+                            $"Commit failed for offsets: {group.Key.Reason}"),
+                        null,
+                        (x, _) => x.ToString());
                 }
                 else
                 {
-                    logger.LogKafkaOffsets(
-                        client,
-                        LogEvents.OffsetsCommitted,
-                        "Offsets committed",
-                        group);
+                    logger.LogKafkaCommit(client, group);
                 }
             }
         }

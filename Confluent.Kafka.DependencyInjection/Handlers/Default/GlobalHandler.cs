@@ -7,8 +7,7 @@ namespace Confluent.Kafka.DependencyInjection.Handlers.Default
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
     class GlobalHandler : IErrorHandler, ILogHandler
     {
-        readonly ConcurrentDictionary<string, ILogger> libLoggers =
-            new ConcurrentDictionary<string, ILogger>();
+        readonly ConcurrentDictionary<string, ILogger> libLoggers = new();
 
         readonly ILoggerFactory factory;
         readonly ILogger<GlobalHandler> logger;
@@ -19,7 +18,8 @@ namespace Confluent.Kafka.DependencyInjection.Handlers.Default
             logger = factory.CreateLogger<GlobalHandler>();
         }
 
-        public void OnError(IClient client, Error error) => logger.LogKafkaError(client, error);
+        public void OnError(IClient client, Error error) =>
+            logger.LogKafkaError(client, error);
 
         public void OnLog(IClient client, LogMessage message)
         {
@@ -29,7 +29,11 @@ namespace Confluent.Kafka.DependencyInjection.Handlers.Default
                 libLoggers[message.Facility] = logger;
             }
 
-            logger.LogKafkaMessage(message);
+            logger.Log(
+                (LogLevel)message.LevelAs(LogLevelType.MicrosoftExtensionsLogging),
+                "[{KafkaClient}] {Message}",
+                client.Name,
+                message.Message);
         }
     }
 }

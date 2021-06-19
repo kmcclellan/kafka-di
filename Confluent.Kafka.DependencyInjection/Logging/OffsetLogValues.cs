@@ -41,8 +41,12 @@ namespace Confluent.Kafka.DependencyInjection.Logging
         }
 
         public KeyValuePair<string, object> this[int index] => Values[index];
+
         public int Count => Values.Count;
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => Values.GetEnumerator();
+
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() =>
+            Values.GetEnumerator();
+
         IEnumerator IEnumerable.GetEnumerator() => Values.GetEnumerator();
 
         List<KeyValuePair<string, object>> Values
@@ -51,22 +55,17 @@ namespace Confluent.Kafka.DependencyInjection.Logging
             {
                 if (values == null)
                 {
-                    var topics = new HashSet<string>();
-                    var partitions = new Dictionary<string, List<int>>();
-                    var offsets = new Dictionary<string, List<long>>();
+                    // There is no contract for structured log types.
+                    // Use primitives for broadest compatibility.
+                    var topics = new List<string>();
+                    var partitions = new List<int>();
+                    var offsets = new List<long>();
 
                     foreach (var tpo in Offsets)
                     {
-                        if (topics.Add(tpo.Topic))
-                        {
-                            partitions.Add(tpo.Topic, new List<int> { tpo.Partition });
-                            offsets.Add(tpo.Topic, new List<long> { tpo.Offset });
-                        }
-                        else
-                        {
-                            partitions[tpo.Topic].Add(tpo.Partition);
-                            offsets[tpo.Topic].Add(tpo.Offset);
-                        }
+                        topics.Add(tpo.Topic);
+                        partitions.Add(tpo.Partition);
+                        offsets.Add(tpo.Offset);
                     }
 
                     values = new Dictionary<string, object>
@@ -74,7 +73,7 @@ namespace Confluent.Kafka.DependencyInjection.Logging
                         { "KafkaClient", Client.Name },
                         { "KafkaTopics", topics },
                         { "KafkaPartitions", partitions },
-                        { "KafkaOffsets", offsets }
+                        { "KafkaOffsets", offsets },
                     }.ToList();
                 }
 

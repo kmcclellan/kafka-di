@@ -19,14 +19,10 @@ namespace Confluent.Kafka.DependencyInjection.Handlers.Default
             IClient client,
             IEnumerable<TopicPartition> partitions)
         {
-            var offsets = partitions.Select(p => new TopicPartitionOffset(p, Offset.Unset));
+            var offsets = partitions.Select(
+                p => new TopicPartitionOffset(p, Offset.Unset));
 
-            logger.LogKafkaOffsets(
-                client,
-                LogEvents.PartitionsAssigned,
-                "Partitions assigned",
-                offsets);
-
+            logger.LogKafkaAssignment(client, offsets);
             return offsets;
         }
 
@@ -34,12 +30,7 @@ namespace Confluent.Kafka.DependencyInjection.Handlers.Default
             IClient client,
             IEnumerable<TopicPartitionOffset> offsets)
         {
-            logger.LogKafkaOffsets(
-                client,
-                LogEvents.PartitionsAssigned,
-                "Partitions revoked",
-                offsets);
-
+            logger.LogKafkaRevocation(client, offsets);
             return Enumerable.Empty<TopicPartitionOffset>();
         }
     }
