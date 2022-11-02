@@ -30,8 +30,8 @@
 
   <ItemGroup>
     <PackageReference Include="Confluent.Kafka" Version="*" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="5.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="*" />
   </ItemGroup>
 
   <ItemGroup>
