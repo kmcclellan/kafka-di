@@ -115,15 +115,16 @@ namespace Confluent.Kafka.DependencyInjection
 
         static IServiceCollection AddAdapters(this IServiceCollection services)
         {
-            services.TryAddTransient(typeof(ProducerAdapter<,>));
-            services.TryAddTransient(typeof(ConsumerAdapter<,>));
-
-            services.TryAddSingleton(typeof(HandlerHelper<>));
             services.TryAddSingleton<IErrorHandler, GlobalHandler>();
             services.TryAddSingleton<ILogHandler, GlobalHandler>();
             services.TryAddSingleton<IPartitionsAssignedHandler, AssignmentHandler>();
             services.TryAddSingleton<IPartitionsRevokedHandler, AssignmentHandler>();
             services.TryAddSingleton<IOffsetsCommittedHandler, CommitHandler>();
+
+            // These must be transient to consume scoped handlers.
+            services.TryAddTransient(typeof(HandlerHelper<>));
+            services.TryAddTransient(typeof(ProducerAdapter<,>));
+            services.TryAddTransient(typeof(ConsumerAdapter<,>));
 
             return services;
         }
