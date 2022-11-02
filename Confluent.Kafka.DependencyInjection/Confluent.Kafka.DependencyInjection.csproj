@@ -2,12 +2,9 @@
 
   <PropertyGroup>
     <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
+    <LangVersion>10.0</LangVersion>
     <Nullable>enable</Nullable>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <AnalysisLevel>latest</AnalysisLevel>
-    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CA1014</NoWarn>
+    <AnalysisLevel>latest-all</AnalysisLevel>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,22 +12,27 @@
     <Authors>Kyle McClellan</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>icon.png</PackageIcon>
-    <PackageProjectUrl>https://github.com/kmcclellan/kafka-di</PackageProjectUrl>
     <Description>An extension of Confluent.Kafka for use with Microsoft.Extensions.DependencyInjection.</Description>
-    <PackageReleaseNotes>https://github.com/kmcclellan/kafka-di/releases/v$(Version)</PackageReleaseNotes>
-    <Copyright>%A9 2020 Kyle McClellan</Copyright>
+    <Copyright>%A9 2020-2022 Kyle McClellan</Copyright>
     <PackageTags>kafka;confluent;dependencyinjection;di;ioc</PackageTags>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/kmcclellan/kafka-di.git</RepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EmbedAllSources>true</EmbedAllSources>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.CLSCompliantAttribute">
+      <_Parameter1>true</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Confluent.Kafka" Version="*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="*" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="*" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
