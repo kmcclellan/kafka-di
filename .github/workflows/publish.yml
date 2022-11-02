@@ -1,0 +1,15 @@
+name: Publish to NuGet.org
+on: { release: { types: [ published ] } }
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-dotnet@v3
+      - name: Create package(s)
+        run: dotnet pack --configuration Release -property:Version=${GITHUB_REF_NAME#v}
+      - name: Upload package(s)
+        run: >
+          dotnet nuget push */bin/Release/*.nupkg
+          --source https://api.nuget.org/v3/index.json
+          --api-key ${{ secrets.NUGET_TOKEN }}
