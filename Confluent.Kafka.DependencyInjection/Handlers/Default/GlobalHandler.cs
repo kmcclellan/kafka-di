@@ -31,9 +31,10 @@ namespace Confluent.Kafka.DependencyInjection.Handlers.Default
 
             logger.Log(
                 (LogLevel)message.LevelAs(LogLevelType.MicrosoftExtensionsLogging),
-                "[{KafkaClient}] {Message}",
-                client.Name,
-                message.Message);
+                0,
+                new KafkaLogState(client, message.Message),
+                null,
+                (x, y) => x.ToString());
         }
     }
 }
