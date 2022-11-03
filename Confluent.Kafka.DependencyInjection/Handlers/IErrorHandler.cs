@@ -13,7 +13,7 @@ namespace Confluent.Kafka.DependencyInjection.Handlers
         /// Handles an error triggered by asynchronous Kafka actions.
         /// </summary>
         /// <param name="client">The Kafka producer or consumer.</param>
-        /// <param name="error">The Kafka error.</param>
-        void OnError(IClient client, Error error);
+        /// <param name="err">The Kafka error.</param>
+        void OnError(IClient client, Error err);
     }
 }

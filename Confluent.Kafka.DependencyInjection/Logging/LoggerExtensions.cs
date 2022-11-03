@@ -84,21 +84,18 @@ namespace Confluent.Kafka.DependencyInjection.Logging
         /// <param name="logger">The extended logger.</param>
         /// <param name="client">The associated Kafka client.</param>
         /// <param name="error">The Kafka error.</param>
-        public static void LogKafkaError(
-            this ILogger logger,
-            IClient client,
-            Error error)
+        public static void LogKafkaError(this ILogger logger, IClient client, Error error)
         {
             if (logger is null) throw new ArgumentNullException(nameof(logger));
             if (client is null) throw new ArgumentNullException(nameof(client));
             if (error is null) throw new ArgumentNullException(nameof(error));
 
             logger.Log(
-                    error.IsFatal ? LogLevel.Critical : LogLevel.Error,
-                    LogEvents.FromError(error.Code),
-                    "[{KafkaClient}] {Message}",
-                    client.Name,
-                    error.Reason);
+                error.IsFatal ? LogLevel.Critical : LogLevel.Error,
+                LogEvents.FromError(error.Code),
+                new KafkaLogState(client, error),
+                null,
+                (x, y) => x.ToString());
         }
     }
 }
