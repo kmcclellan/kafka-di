@@ -7,6 +7,8 @@ namespace Confluent.Kafka.DependencyInjection.Logging
 {
     readonly struct KafkaLogState : IReadOnlyList<KeyValuePair<string, object?>>
     {
+        private const string DefaultName = "Unknown";
+
         readonly IClient client;
         readonly object? payload;
 
@@ -24,7 +26,7 @@ namespace Confluent.Kafka.DependencyInjection.Logging
             {
                 return index switch
                 {
-                    0 => new("KafkaClient", client.Name),
+                    0 => new("KafkaClient", GetClientName()),
                     1 => new("{OriginalMessage}", payload),
                     _ => throw new ArgumentOutOfRangeException(nameof(index)),
                 };
@@ -46,7 +48,11 @@ namespace Confluent.Kafka.DependencyInjection.Logging
 
         public override string ToString()
         {
-            return string.Format(CultureInfo.InvariantCulture, "[{0}] {1}", client.Name, payload);
+            return string.Format(CultureInfo.InvariantCulture, "[{0}] {1}", GetClientName(), payload);
         }
+
+        private string GetClientName() => client.Handle is null || client.Handle.IsInvalid
+            ? DefaultName
+            : client.Name;
     }
 }
