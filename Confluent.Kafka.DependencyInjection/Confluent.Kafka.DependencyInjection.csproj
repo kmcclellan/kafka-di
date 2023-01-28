@@ -1,25 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net6.0;netstandard2.0</TargetFrameworks>
     <LangVersion>10.0</LangVersion>
     <Nullable>enable</Nullable>
-    <AnalysisLevel>latest-all</AnalysisLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AnalysisMode>All</AnalysisMode>
   </PropertyGroup>
 
   <PropertyGroup>
     <Title>Kafka Dependency Injection</Title>
-    <Authors>Kyle McClellan</Authors>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageIcon>icon.png</PackageIcon>
-    <Description>An extension of Confluent.Kafka for use with Microsoft.Extensions.DependencyInjection.</Description>
-    <Copyright>%A9 2020-2022 Kyle McClellan</Copyright>
-    <PackageTags>kafka;confluent;dependencyinjection;di;ioc</PackageTags>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>An extension of Confluent.Kafka for use with Microsoft.Extensions.DependencyInjection (and friends).</Description>
+    <PackageTags>kafka;confluent;dependencyinjection;di;ioc;logging</PackageTags>
+    <PackageProjectUrl>https://github.com/kmcclellan/kafka-di</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/kmcclellan/kafka-di/releases/v$(Version)</PackageReleaseNotes>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <Authors>Kyle McClellan and others</Authors>
+    <Copyright>%A9 2020-2023 Kyle McClellan and others</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadme>README.md</PackageReadme>
+    <PackageIcon>icon.png</PackageIcon>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,7 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../icon.png" Pack="true" PackagePath="/"/>
+    <None Include="..\README.md;..\icon.png" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>
