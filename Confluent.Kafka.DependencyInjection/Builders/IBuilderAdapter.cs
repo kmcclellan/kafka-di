@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
+namespace Confluent.Kafka.DependencyInjection.Builders;
 
-namespace Confluent.Kafka.DependencyInjection.Builders
+using System.Collections.Generic;
+
+interface IBuilderAdapter<TClient>
 {
-    interface IBuilderAdapter<TClient>
-    {
-        IDictionary<string, string> ClientConfig { get; }
+    IDictionary<string, string> ClientConfig { get; }
 
-        TClient Build();
-    }
+    TClient Build();
 }
