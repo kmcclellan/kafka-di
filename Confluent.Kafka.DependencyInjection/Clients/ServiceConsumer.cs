@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Confluent.Kafka.DependencyInjection.Builders;
@@ -6,7 +6,7 @@ using Confluent.Kafka.DependencyInjection.Builders;
 namespace Confluent.Kafka.DependencyInjection.Clients
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-    class ServiceConsumer<TReceiver, TKey, TValue> : ServiceConsumer<TKey, TValue>
+    sealed class ServiceConsumer<TReceiver, TKey, TValue> : ServiceConsumer<TKey, TValue>
     {
         public ServiceConsumer(ConsumerAdapter<TKey, TValue> adapter, ConfigWrapper<TReceiver> config)
             : base(adapter, config.Values) { }

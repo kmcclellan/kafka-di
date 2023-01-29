@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
 namespace Confluent.Kafka.DependencyInjection.Logging
 {
-    class LogEvents
+    static class LogEvents
     {
         static Dictionary<ErrorCode, EventId>? errorIds;
 

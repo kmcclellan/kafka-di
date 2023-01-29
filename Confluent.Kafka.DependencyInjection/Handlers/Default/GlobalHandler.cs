@@ -1,11 +1,11 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Confluent.Kafka.DependencyInjection.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Confluent.Kafka.DependencyInjection.Handlers.Default
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-    class GlobalHandler : IErrorHandler, ILogHandler
+    sealed class GlobalHandler : IErrorHandler, ILogHandler
     {
         readonly ConcurrentDictionary<string, ILogger> libLoggers = new();
 

@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Confluent.Kafka.DependencyInjection.Handlers;
 
 namespace Confluent.Kafka.DependencyInjection.Builders
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-    class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>, IBuilderAdapter<IProducer<TKey, TValue>>
+    sealed class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>, IBuilderAdapter<IProducer<TKey, TValue>>
     {
         public IDictionary<string, string> ClientConfig { get; } = new Dictionary<string, string>();
 

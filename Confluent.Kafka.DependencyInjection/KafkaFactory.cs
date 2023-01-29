@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Confluent.Kafka.DependencyInjection.Builders;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Confluent.Kafka.DependencyInjection
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-    class KafkaFactory : IKafkaFactory, IDisposable
+    sealed class KafkaFactory : IKafkaFactory, IDisposable
     {
         readonly List<IDisposable> disposables = new();
         readonly IServiceScopeFactory scopes;

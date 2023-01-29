@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Confluent.Kafka.DependencyInjection
 {
-    class GenericServiceMapper<T> : IServiceProvider
+    sealed class GenericServiceMapper<T> : IServiceProvider
     {
         readonly IServiceProvider provider;
         readonly IDictionary<Type, Type> mappings;

@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Confluent.Kafka.DependencyInjection.Handlers
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-    class HandlerHelper<T>
+    sealed class HandlerHelper<T>
     {
         readonly IEnumerable<T> handlers;
 

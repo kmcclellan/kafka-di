@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Confluent.Kafka.DependencyInjection.Builders
 {
-    class ConfigWrapper<TReceiver> : ConfigWrapper
+    sealed class ConfigWrapper<TReceiver> : ConfigWrapper
     {
         public ConfigWrapper(IEnumerable<KeyValuePair<string, string>> values) : base(values) { }
     }

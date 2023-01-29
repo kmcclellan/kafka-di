@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,7 +7,7 @@ using Confluent.Kafka.DependencyInjection.Builders;
 namespace Confluent.Kafka.DependencyInjection.Clients
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-    class ServiceProducer<TReceiver, TKey, TValue> : ServiceProducer<TKey, TValue>
+    sealed class ServiceProducer<TReceiver, TKey, TValue> : ServiceProducer<TKey, TValue>
     {
         public ServiceProducer(ProducerAdapter<TKey, TValue> adapter, ConfigWrapper<TReceiver> config)
             : base(adapter, config.Values) { }

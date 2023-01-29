@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Confluent.Kafka.DependencyInjection.Logging;
 using Microsoft.Extensions.Logging;
@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace Confluent.Kafka.DependencyInjection.Handlers.Default
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-    class AssignmentHandler : IPartitionsAssignedHandler, IPartitionsRevokedHandler
+    sealed class AssignmentHandler : IPartitionsAssignedHandler, IPartitionsRevokedHandler
     {
         readonly ILogger<AssignmentHandler> logger;
 

@@ -1,11 +1,11 @@
-﻿using System.Linq;
+using System.Linq;
 using Confluent.Kafka.DependencyInjection.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Confluent.Kafka.DependencyInjection.Handlers.Default
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-    class CommitHandler : IOffsetsCommittedHandler
+    sealed class CommitHandler : IOffsetsCommittedHandler
     {
         readonly ILogger<CommitHandler> logger;
 

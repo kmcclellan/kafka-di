@@ -1,11 +1,11 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace Confluent.Kafka.DependencyInjection.Logging
 {
-    class OffsetLogValues : IReadOnlyList<KeyValuePair<string, object>>
+    sealed class OffsetLogValues : IReadOnlyList<KeyValuePair<string, object>>
     {
         public IClient Client { get; }
         public IEnumerable<TopicPartitionOffset> Offsets { get; }
