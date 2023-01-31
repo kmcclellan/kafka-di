@@ -5,7 +5,7 @@ using Confluent.Kafka.DependencyInjection.Handlers;
 using System.Collections.Generic;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-sealed class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>, IBuilderAdapter<IProducer<TKey, TValue>>
+sealed class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>
 {
     public IDictionary<string, string> ClientConfig { get; } = new Dictionary<string, string>();
 

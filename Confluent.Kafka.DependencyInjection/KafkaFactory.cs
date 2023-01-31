@@ -1,16 +1,14 @@
 namespace Confluent.Kafka.DependencyInjection;
 
-using Confluent.Kafka.DependencyInjection.Builders;
+using Confluent.Kafka.DependencyInjection.Clients;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using System;
 using System.Collections.Generic;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-sealed class KafkaFactory : IKafkaFactory, IDisposable
+sealed class KafkaFactory : IKafkaFactory
 {
-    readonly List<IDisposable> disposables = new();
     readonly IServiceScopeFactory scopes;
 
     public KafkaFactory(IServiceScopeFactory scopes)
@@ -19,35 +17,14 @@ sealed class KafkaFactory : IKafkaFactory, IDisposable
     }
 
     public IProducer<TKey, TValue> CreateProducer<TKey, TValue>(
-        IEnumerable<KeyValuePair<string, string>>? configuration = null) =>
-            CreateClient<IProducer<TKey, TValue>, ProducerAdapter<TKey, TValue>>(configuration);
-
-    public IConsumer<TKey, TValue> CreateConsumer<TKey, TValue>(
-        IEnumerable<KeyValuePair<string, string>>? configuration = null) =>
-            CreateClient<IConsumer<TKey, TValue>, ConsumerAdapter<TKey, TValue>>(configuration);
-
-    TClient CreateClient<TClient, TBuilder>(IEnumerable<KeyValuePair<string, string>>? config)
-        where TBuilder : IBuilderAdapter<TClient>
+        IEnumerable<KeyValuePair<string, string>>? configuration = null)
     {
-        // Create shared scope for handlers/converters.
-        var scope = scopes.CreateScope();
-        disposables.Add(scope);
-
-        var builder = scope.ServiceProvider.GetRequiredService<TBuilder>();
-
-        if (config != null)
-        {
-            foreach (var kvp in config)
-            {
-                builder.ClientConfig[kvp.Key] = kvp.Value;
-            }
-        }
-
-        return builder.Build();
+        return new ServiceProducer<TKey, TValue>(scopes, configuration);
     }
 
-    public void Dispose()
+    public IConsumer<TKey, TValue> CreateConsumer<TKey, TValue>(
+        IEnumerable<KeyValuePair<string, string>>? configuration = null)
     {
-        foreach (var x in disposables) x.Dispose();
+        return new ServiceConsumer<TKey, TValue>(scopes, configuration, closeOnDispose: false);
     }
 }

@@ -2,6 +2,8 @@ namespace Confluent.Kafka.DependencyInjection.Clients;
 
 using Confluent.Kafka.DependencyInjection.Builders;
 
+using Microsoft.Extensions.DependencyInjection;
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -10,21 +12,23 @@ using System.Threading.Tasks;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class ServiceProducer<TReceiver, TKey, TValue> : ServiceProducer<TKey, TValue>
 {
-    public ServiceProducer(ProducerAdapter<TKey, TValue> adapter, ConfigWrapper<TReceiver> config)
-        : base(adapter, config.Values) { }
+    public ServiceProducer(IServiceScopeFactory scopes, ConfigWrapper<TReceiver> config)
+        : base(scopes, config.Values)
+    {
+    }
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 class ServiceProducer<TKey, TValue> : IProducer<TKey, TValue>
 {
     readonly IProducer<TKey, TValue> producer;
+    readonly IServiceScope scope;
 
-    public ServiceProducer(ProducerAdapter<TKey, TValue> adapter) : this(adapter, null) { }
-
-    protected ServiceProducer(
-        ProducerAdapter<TKey, TValue> adapter,
-        IEnumerable<KeyValuePair<string, string>>? config)
+    public ServiceProducer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>>? config = null)
     {
+        scope = scopes.CreateScope();
+        var adapter = scope.ServiceProvider.GetRequiredService<ProducerAdapter<TKey, TValue>>();
+
         if (config != null)
         {
             foreach (var kvp in config)
@@ -85,6 +89,9 @@ class ServiceProducer<TKey, TValue> : IProducer<TKey, TValue>
     public int Flush(TimeSpan timeout) =>
         producer.Flush(timeout);
 
-    public void Dispose() =>
+    public void Dispose()
+    {
         producer.Dispose();
+        scope.Dispose();
+    }
 }

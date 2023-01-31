@@ -6,7 +6,7 @@ using Confluent.Kafka.SyncOverAsync;
 using System.Collections.Generic;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
-sealed class ConsumerAdapter<TKey, TValue> : ConsumerBuilder<TKey, TValue>, IBuilderAdapter<IConsumer<TKey, TValue>>
+sealed class ConsumerAdapter<TKey, TValue> : ConsumerBuilder<TKey, TValue>
 {
     public IDictionary<string, string> ClientConfig { get; } = new Dictionary<string, string>();
 

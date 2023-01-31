@@ -2,6 +2,8 @@ namespace Confluent.Kafka.DependencyInjection.Clients;
 
 using Confluent.Kafka.DependencyInjection.Builders;
 
+using Microsoft.Extensions.DependencyInjection;
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -9,22 +11,29 @@ using System.Threading;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class ServiceConsumer<TReceiver, TKey, TValue> : ServiceConsumer<TKey, TValue>
 {
-    public ServiceConsumer(ConsumerAdapter<TKey, TValue> adapter, ConfigWrapper<TReceiver> config)
-        : base(adapter, config.Values) { }
+    public ServiceConsumer(IServiceScopeFactory scopes, ConfigWrapper<TReceiver> config)
+        : base(scopes, config.Values)
+    {
+    }
 }
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 class ServiceConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 {
     readonly IConsumer<TKey, TValue> consumer;
+    readonly IServiceScope scope;
+    readonly bool closeOnDispose;
+
     bool closed;
 
-    public ServiceConsumer(ConsumerAdapter<TKey, TValue> adapter) : this(adapter, null) { }
-
-    protected ServiceConsumer(
-        ConsumerAdapter<TKey, TValue> adapter,
-        IEnumerable<KeyValuePair<string, string>>? config)
+    public ServiceConsumer(
+        IServiceScopeFactory scopes,
+        IEnumerable<KeyValuePair<string, string>>? config = null,
+        bool closeOnDispose = true)
     {
+        scope = scopes.CreateScope();
+        var adapter = scope.ServiceProvider.GetRequiredService<ConsumerAdapter<TKey, TValue>>();
+
         if (config != null)
         {
             foreach (var kvp in config)
@@ -34,6 +43,8 @@ class ServiceConsumer<TKey, TValue> : IConsumer<TKey, TValue>
         }
 
         consumer = adapter.Build();
+
+        this.closeOnDispose = closeOnDispose;
     }
 
     public Handle Handle => consumer.Handle;
@@ -144,8 +155,13 @@ class ServiceConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 
     public void Dispose()
     {
-        // Close when disposed by ServiceProvider.
-        if (!closed) consumer.Close();
+        if (closeOnDispose && !closed)
+        {
+            // Close when disposed by ServiceProvider.
+            consumer.Close();
+        }
+
         consumer.Dispose();
+        scope.Dispose();
     }
 }
