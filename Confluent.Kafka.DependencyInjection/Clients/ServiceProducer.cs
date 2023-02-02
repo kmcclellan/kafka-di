@@ -6,35 +6,37 @@ using Microsoft.Extensions.DependencyInjection;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class ServiceProducer<TReceiver, TKey, TValue> : ServiceProducer<TKey, TValue>
 {
-    public ServiceProducer(IServiceScopeFactory scopes, ConfigWrapper<TReceiver> config)
-        : base(scopes, config.Values)
+    public ServiceProducer(IServiceScopeFactory scopes, ConfigWrapper<TReceiver> config, ConfigWrapper? global = null)
+        : base(scopes, global?.Values.Concat(config.Values) ?? config.Values)
     {
     }
 }
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 class ServiceProducer<TKey, TValue> : IProducer<TKey, TValue>
 {
     readonly IProducer<TKey, TValue> producer;
     readonly IServiceScope scope;
 
-    public ServiceProducer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>>? config = null)
+    public ServiceProducer(IServiceScopeFactory scopes, ConfigWrapper config)
+        : this(scopes, config.Values)
+    {
+    }
+
+    internal ServiceProducer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>> config)
     {
         scope = scopes.CreateScope();
         var adapter = scope.ServiceProvider.GetRequiredService<ProducerAdapter<TKey, TValue>>();
 
-        if (config != null)
+        foreach (var kvp in config)
         {
-            foreach (var kvp in config)
-            {
-                adapter.ClientConfig[kvp.Key] = kvp.Value;
-            }
+            adapter.ClientConfig[kvp.Key] = kvp.Value;
         }
 
         producer = adapter.Build();

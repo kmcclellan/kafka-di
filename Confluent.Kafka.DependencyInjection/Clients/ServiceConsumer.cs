@@ -6,18 +6,18 @@ using Microsoft.Extensions.DependencyInjection;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class ServiceConsumer<TReceiver, TKey, TValue> : ServiceConsumer<TKey, TValue>
 {
-    public ServiceConsumer(IServiceScopeFactory scopes, ConfigWrapper<TReceiver> config)
-        : base(scopes, config.Values)
+    public ServiceConsumer(IServiceScopeFactory scopes, ConfigWrapper<TReceiver> config, ConfigWrapper? global = null)
+        : base(scopes, global?.Values.Concat(config.Values) ?? config.Values)
     {
     }
 }
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 class ServiceConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 {
     readonly IConsumer<TKey, TValue> consumer;
@@ -26,20 +26,22 @@ class ServiceConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 
     bool closed;
 
-    public ServiceConsumer(
+    public ServiceConsumer(IServiceScopeFactory scopes, ConfigWrapper config)
+        : this(scopes, config.Values, closeOnDispose: true)
+    {
+    }
+
+    internal ServiceConsumer(
         IServiceScopeFactory scopes,
-        IEnumerable<KeyValuePair<string, string>>? config = null,
-        bool closeOnDispose = true)
+        IEnumerable<KeyValuePair<string, string>> config,
+        bool closeOnDispose = false)
     {
         scope = scopes.CreateScope();
         var adapter = scope.ServiceProvider.GetRequiredService<ConsumerAdapter<TKey, TValue>>();
 
-        if (config != null)
+        foreach (var kvp in config)
         {
-            foreach (var kvp in config)
-            {
-                adapter.ClientConfig[kvp.Key] = kvp.Value;
-            }
+            adapter.ClientConfig[kvp.Key] = kvp.Value;
         }
 
         consumer = adapter.Build();
