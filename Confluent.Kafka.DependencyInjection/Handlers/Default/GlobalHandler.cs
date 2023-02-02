@@ -34,7 +34,7 @@ sealed class GlobalHandler : IErrorHandler, ILogHandler
         logger.Log(
             (LogLevel)message.LevelAs(LogLevelType.MicrosoftExtensionsLogging),
             0,
-            new KafkaLogState(client, message.Message),
+            new KafkaLogValues(client, message.Message),
             null,
             (x, y) => x.ToString());
     }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Extensions for logging common Kafka scenarios.
@@ -28,7 +29,7 @@ public static class LoggerExtensions
         logger.Log(
             LogLevel.Information,
             LogEvents.PartitionsAssigned,
-            new OffsetLogValues(client, offsets, "Partitions assigned"),
+            new KafkaLogValues(client, "Partitions assigned", offsets.ToList()),
             null,
             (x, _) => x.ToString());
     }
@@ -51,7 +52,7 @@ public static class LoggerExtensions
         logger.Log(
             LogLevel.Information,
             LogEvents.PartitionsRevoked,
-            new OffsetLogValues(client, offsets, "Partitions revoked"),
+            new KafkaLogValues(client, "Partitions revoked", offsets.ToList()),
             null,
             (x, _) => x.ToString());
     }
@@ -72,11 +73,11 @@ public static class LoggerExtensions
         if (offsets is null) throw new ArgumentNullException(nameof(offsets));
 
         logger.Log(
-                LogLevel.Information,
-                LogEvents.OffsetsCommitted,
-                new OffsetLogValues(client, offsets, "Offsets committed"),
-                null,
-                (x, _) => x.ToString());
+            LogLevel.Information,
+            LogEvents.OffsetsCommitted,
+            new KafkaLogValues(client, "Offsets committed", offsets.ToList()),
+            null,
+            (x, _) => x.ToString());
     }
 
     /// <summary>
@@ -94,7 +95,7 @@ public static class LoggerExtensions
         logger.Log(
             error.IsFatal ? LogLevel.Critical : LogLevel.Error,
             LogEvents.FromError(error.Code),
-            new KafkaLogState(client, error),
+            new KafkaLogValues(client, error.ToString()),
             null,
             (x, y) => x.ToString());
     }
