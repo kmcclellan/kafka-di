@@ -18,7 +18,7 @@
     <Authors>Kyle McClellan and others</Authors>
     <Copyright>%A9 2020-2023 Kyle McClellan and others</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadme>README.md</PackageReadme>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
