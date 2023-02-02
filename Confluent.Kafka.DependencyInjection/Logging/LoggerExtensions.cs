@@ -29,7 +29,7 @@ public static class LoggerExtensions
         logger.Log(
             LogLevel.Information,
             LogEvents.PartitionsAssigned,
-            new KafkaLogValues(client, "Partitions assigned", offsets.ToList()),
+            new KafkaLogValues(client.Name, "Partitions assigned", offsets.ToList()),
             null,
             (x, _) => x.ToString());
     }
@@ -52,7 +52,7 @@ public static class LoggerExtensions
         logger.Log(
             LogLevel.Information,
             LogEvents.PartitionsRevoked,
-            new KafkaLogValues(client, "Partitions revoked", offsets.ToList()),
+            new KafkaLogValues(client.Name, "Partitions revoked", offsets.ToList()),
             null,
             (x, _) => x.ToString());
     }
@@ -75,7 +75,7 @@ public static class LoggerExtensions
         logger.Log(
             LogLevel.Information,
             LogEvents.OffsetsCommitted,
-            new KafkaLogValues(client, "Offsets committed", offsets.ToList()),
+            new KafkaLogValues(client.Name, "Offsets committed", offsets.ToList()),
             null,
             (x, _) => x.ToString());
     }
@@ -95,7 +95,7 @@ public static class LoggerExtensions
         logger.Log(
             error.IsFatal ? LogLevel.Critical : LogLevel.Error,
             LogEvents.FromError(error.Code),
-            new KafkaLogValues(client, error.ToString()),
+            new KafkaLogValues(client.Name, error.ToString()),
             null,
             (x, y) => x.ToString());
     }

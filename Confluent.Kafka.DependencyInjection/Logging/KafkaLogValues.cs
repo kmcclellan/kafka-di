@@ -7,13 +7,11 @@ using System.Text;
 
 readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
 {
-    const string DefaultName = "Unknown";
-
-    readonly IClient client;
+    readonly string client;
     readonly string message;
     readonly IReadOnlyList<TopicPartitionOffset>? offsets;
 
-    public KafkaLogValues(IClient client, string message, IReadOnlyList<TopicPartitionOffset>? offsets = null)
+    public KafkaLogValues(string client, string message, IReadOnlyList<TopicPartitionOffset>? offsets = null)
     {
         this.client = client;
         this.message = message;
@@ -55,7 +53,7 @@ readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
     {
         var builder = new StringBuilder()
             .Append('[')
-            .Append(GetClientName())
+            .Append(client)
             .Append(']')
             .Append(' ')
             .Append(message);
@@ -87,8 +85,4 @@ readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
 
         return null;
     }
-
-    string GetClientName() => client.Handle is null || client.Handle.IsInvalid
-        ? DefaultName
-        : client.Name;
 }
