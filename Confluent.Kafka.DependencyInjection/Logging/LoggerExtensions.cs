@@ -96,7 +96,7 @@ public static class LoggerExtensions
             error.IsFatal ? LogLevel.Critical : LogLevel.Error,
             LogEvents.FromError(error.Code),
             new KafkaLogValues(client.Name, error.ToString()),
-            null,
+            new KafkaException(error),
             (x, y) => x.ToString());
     }
 }

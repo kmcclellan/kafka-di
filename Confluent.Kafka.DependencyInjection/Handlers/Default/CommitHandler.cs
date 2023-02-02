@@ -31,7 +31,7 @@ sealed class CommitHandler : IOffsetsCommittedHandler
                         client.Name,
                         $"Commit failed for offsets: {group.Key.Reason}",
                         group.ToList()),
-                    null,
+                    new KafkaException(group.Key),
                     (x, _) => x.ToString());
             }
             else
