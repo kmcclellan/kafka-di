@@ -124,9 +124,8 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IOffsetsCommittedHandler, CommitHandler>();
 
         // These must be transient to consume scoped handlers.
-        services.TryAddTransient(typeof(HandlerHelper<>));
-        services.TryAddTransient(typeof(ProducerAdapter<,>));
-        services.TryAddTransient(typeof(ConsumerAdapter<,>));
+        services.TryAddTransient(typeof(ProducerBuilder<,>), typeof(ProducerAdapter<,>));
+        services.TryAddTransient(typeof(ConsumerBuilder<,>), typeof(ConsumerAdapter<,>));
 
         return services;
     }
