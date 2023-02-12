@@ -24,13 +24,13 @@ sealed class KafkaFactory : IKafkaFactory
     public IProducer<TKey, TValue> CreateProducer<TKey, TValue>(
         IEnumerable<KeyValuePair<string, string>>? configuration = null)
     {
-        return new ServiceProducer<TKey, TValue>(scopes, Merge(configuration));
+        return new ProducerAdapter<TKey, TValue>(Merge(configuration), scopes.CreateScope(), dispose: true).Build();
     }
 
     public IConsumer<TKey, TValue> CreateConsumer<TKey, TValue>(
         IEnumerable<KeyValuePair<string, string>>? configuration = null)
     {
-        return new ServiceConsumer<TKey, TValue>(scopes, Merge(configuration), closeOnDispose: false);
+        return new ConsumerAdapter<TKey, TValue>(Merge(configuration), scopes.CreateScope(), dispose: true).Build();
     }
 
     IEnumerable<KeyValuePair<string, string>> Merge(IEnumerable<KeyValuePair<string, string>>? overrides)

@@ -62,6 +62,6 @@ sealed class ConsumerAdapter<TKey, TValue> : ConsumerBuilder<TKey, TValue>
     public override IConsumer<TKey, TValue> Build()
     {
         var consumer = base.Build();
-        return scope != null ? new ServiceConsumer<TKey, TValue>(consumer, scope) : consumer;
+        return scope != null ? new ScopedConsumer<TKey, TValue>(consumer, scope) : consumer;
     }
 }

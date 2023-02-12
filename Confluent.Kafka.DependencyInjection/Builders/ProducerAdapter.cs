@@ -56,6 +56,6 @@ sealed class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>
     public override IProducer<TKey, TValue> Build()
     {
         var producer = base.Build();
-        return scope != null ? new ServiceProducer<TKey, TValue>(producer, scope) : producer;
+        return scope != null ? new ScopedProducer<TKey, TValue>(producer, scope) : producer;
     }
 }
