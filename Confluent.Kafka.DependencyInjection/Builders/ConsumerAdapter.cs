@@ -1,46 +1,67 @@
 namespace Confluent.Kafka.DependencyInjection.Builders;
 
+using Confluent.Kafka.DependencyInjection.Clients;
 using Confluent.Kafka.DependencyInjection.Handlers;
 using Confluent.Kafka.SyncOverAsync;
 
-using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 sealed class ConsumerAdapter<TKey, TValue> : ConsumerBuilder<TKey, TValue>
 {
-    public IDictionary<string, string> ClientConfig { get; } = new Dictionary<string, string>();
+    readonly IDisposable? scope;
 
-    public ConsumerAdapter(
-        HandlerHelper<IErrorHandler> errorHelper,
-        HandlerHelper<IStatisticsHandler> statisticsHelper,
-        HandlerHelper<ILogHandler> logHelper,
-        HandlerHelper<IPartitionsAssignedHandler> assignHelper,
-        HandlerHelper<IPartitionsRevokedHandler> revokeHelper,
-        HandlerHelper<IOffsetsCommittedHandler> commitHelper,
-        ConfigWrapper? config = null,
-        IDeserializer<TKey>? keyDeserializer = null,
-        IDeserializer<TValue>? valueDeserializer = null,
-        IAsyncDeserializer<TKey>? asyncKeyDeserializer = null,
-        IAsyncDeserializer<TValue>? asyncValueDeserializer = null)
-        : base(config?.Values)
+    public ConsumerAdapter(IServiceScopeFactory scopes, ConfigWrapper config)
+        : this(config.Values, scopes.CreateScope(), dispose: true)
     {
-        ErrorHandler = errorHelper.Resolve(x => x.OnError, ErrorHandler);
-        StatisticsHandler = statisticsHelper.Resolve(x => x.OnStatistics, StatisticsHandler);
-        LogHandler = logHelper.Resolve(x => x.OnLog, LogHandler);
-        PartitionsAssignedHandler = assignHelper.Resolve(x => x.OnPartitionsAssigned, PartitionsAssignedHandler);
-        PartitionsRevokedHandler = revokeHelper.Resolve(x => x.OnPartitionsRevoked, PartitionsRevokedHandler);
-        OffsetsCommittedHandler = commitHelper.Resolve(x => x.OnOffsetsCommitted, OffsetsCommittedHandler);
-        KeyDeserializer = keyDeserializer ?? asyncKeyDeserializer?.AsSyncOverAsync();
-        ValueDeserializer = valueDeserializer ?? asyncValueDeserializer?.AsSyncOverAsync();
+    }
 
-        if (Config != null)
+    internal ConsumerAdapter(
+        IEnumerable<KeyValuePair<string, string>> config,
+        IServiceScope scope,
+        bool dispose)
+        : base(config)
+    {
+        ErrorHandler = scope.ServiceProvider.GetServices<IErrorHandler>()
+            .Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
+
+        StatisticsHandler = scope.ServiceProvider.GetServices<IStatisticsHandler>()
+            .Aggregate(default(Action<IClient, string>), (x, y) => x + y.OnStatistics);
+
+        LogHandler = scope.ServiceProvider.GetServices<ILogHandler>()
+            .Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
+
+        PartitionsAssignedHandler = scope.ServiceProvider.GetServices<IPartitionsAssignedHandler>()
+            .Aggregate(
+                default(Func<IClient, IEnumerable<TopicPartition>, IEnumerable<TopicPartitionOffset>>),
+                (x, y) => x + y.OnPartitionsAssigned);
+
+        PartitionsRevokedHandler = scope.ServiceProvider.GetServices<IPartitionsRevokedHandler>()
+            .Aggregate(
+                default(Func<IClient, IEnumerable<TopicPartitionOffset>, IEnumerable<TopicPartitionOffset>>),
+                (x, y) => x + y.OnPartitionsRevoked);
+
+        OffsetsCommittedHandler = scope.ServiceProvider.GetServices<IOffsetsCommittedHandler>()
+            .Aggregate(default(Action<IClient, CommittedOffsets>), (x, y) => x + y.OnOffsetsCommitted);
+
+        KeyDeserializer = scope.ServiceProvider.GetService<IDeserializer<TKey>>() ??
+            scope.ServiceProvider.GetService<IAsyncDeserializer<TKey>>()?.AsSyncOverAsync();
+
+        ValueDeserializer = scope.ServiceProvider.GetService<IDeserializer<TValue>>() ??
+            scope.ServiceProvider.GetService<IAsyncDeserializer<TValue>>()?.AsSyncOverAsync();
+
+        if (dispose)
         {
-            foreach (var kvp in Config)
-            {
-                ClientConfig[kvp.Key] = kvp.Value;
-            }
+            this.scope = scope;
         }
+    }
 
-        Config = ClientConfig;
+    public override IConsumer<TKey, TValue> Build()
+    {
+        var consumer = base.Build();
+        return scope != null ? new ScopedConsumer<TKey, TValue>(consumer, scope) : consumer;
     }
 }

@@ -1,44 +1,61 @@
 namespace Confluent.Kafka.DependencyInjection.Builders;
 
+using Confluent.Kafka.DependencyInjection.Clients;
 using Confluent.Kafka.DependencyInjection.Handlers;
 
-using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 sealed class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>
 {
-    public IDictionary<string, string> ClientConfig { get; } = new Dictionary<string, string>();
+    readonly IDisposable? scope;
 
-    public ProducerAdapter(
-        HandlerHelper<IErrorHandler> errorHelper,
-        HandlerHelper<IStatisticsHandler> statisticsHelper,
-        HandlerHelper<ILogHandler> logHelper,
-        ConfigWrapper? config = null,
-        ISerializer<TKey>? keySerializer = null,
-        ISerializer<TValue>? valueSerializer = null,
-        IAsyncSerializer<TKey>? asyncKeySerializer = null,
-        IAsyncSerializer<TValue>? asyncValueSerializer = null)
-        : base(config?.Values)
+    public ProducerAdapter(IServiceScopeFactory scopes, ConfigWrapper config)
+        : this(config.Values, scopes.CreateScope(), dispose: true)
     {
-        ErrorHandler = errorHelper.Resolve(x => x.OnError, ErrorHandler);
-        StatisticsHandler = statisticsHelper.Resolve(x => x.OnStatistics, StatisticsHandler);
-        LogHandler = logHelper.Resolve(x => x.OnLog, LogHandler);
+    }
 
-        KeySerializer = keySerializer;
-        ValueSerializer = valueSerializer;
+    internal ProducerAdapter(
+        IEnumerable<KeyValuePair<string, string>> config,
+        IServiceScope scope,
+        bool dispose)
+        : base(config)
+    {
+        ErrorHandler = scope.ServiceProvider.GetServices<IErrorHandler>()
+            .Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
+
+        StatisticsHandler = scope.ServiceProvider.GetServices<IStatisticsHandler>()
+            .Aggregate(default(Action<IClient, string>), (x, y) => x + y.OnStatistics);
+
+        LogHandler = scope.ServiceProvider.GetServices<ILogHandler>()
+            .Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
+
+        KeySerializer = scope.ServiceProvider.GetService<ISerializer<TKey>>();
+        ValueSerializer = scope.ServiceProvider.GetService<ISerializer<TValue>>();
 
         // Setting both types of serializers is an error.
-        if (keySerializer == null) AsyncKeySerializer = asyncKeySerializer;
-        if (valueSerializer == null) AsyncValueSerializer = asyncValueSerializer;
-
-        if (Config != null)
+        if (KeySerializer == null)
         {
-            foreach (var kvp in Config)
-            {
-                ClientConfig[kvp.Key] = kvp.Value;
-            }
+            AsyncKeySerializer = scope.ServiceProvider.GetService<IAsyncSerializer<TKey>>();
         }
 
-        Config = ClientConfig;
+        if (ValueSerializer == null)
+        {
+            AsyncValueSerializer =scope.ServiceProvider.GetService<IAsyncSerializer<TValue>>();
+        }
+
+        if (dispose)
+        {
+            this.scope = scope;
+        }
+    }
+
+    public override IProducer<TKey, TValue> Build()
+    {
+        var producer = base.Build();
+        return scope != null ? new ScopedProducer<TKey, TValue>(producer, scope) : producer;
     }
 }
