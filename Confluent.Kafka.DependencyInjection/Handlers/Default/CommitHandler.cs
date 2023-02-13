@@ -27,11 +27,11 @@ sealed class CommitHandler : IOffsetsCommittedHandler
                 logger.Log(
                     group.Key.IsFatal ? LogLevel.Critical : LogLevel.Error,
                     LogEvents.FromError(group.Key.Code),
-                    new OffsetLogValues(
-                        client,
-                        group,
-                        $"Commit failed for offsets: {group.Key.Reason}"),
-                    null,
+                    new KafkaLogValues(
+                        client.Name,
+                        $"Commit failed for offsets: {group.Key.Reason}",
+                        group.ToList()),
+                    new KafkaException(group.Key),
                     (x, _) => x.ToString());
             }
             else
