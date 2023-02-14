@@ -11,50 +11,50 @@ using System.Linq;
 
 sealed class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>
 {
+    readonly IServiceProvider services;
     readonly IDisposable? scope;
 
     public ProducerAdapter(IServiceScopeFactory scopes, ConfigWrapper config)
-        : this(config.Values, scopes.CreateScope(), dispose: true)
+        : this(scopes, config.Values)
     {
     }
 
-    internal ProducerAdapter(
-        IEnumerable<KeyValuePair<string, string>> config,
-        IServiceScope scope,
-        bool dispose)
+    internal ProducerAdapter(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>> config)
         : base(config)
     {
-        ErrorHandler = scope.ServiceProvider.GetServices<IErrorHandler>()
-            .Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
+        IServiceScope scope;
+        this.scope = scope = scopes.CreateScope();
+        this.services = scope.ServiceProvider;
+    }
 
-        StatisticsHandler = scope.ServiceProvider.GetServices<IStatisticsHandler>()
-            .Aggregate(default(Action<IClient, string>), (x, y) => x + y.OnStatistics);
-
-        LogHandler = scope.ServiceProvider.GetServices<ILogHandler>()
-            .Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
-
-        KeySerializer = scope.ServiceProvider.GetService<ISerializer<TKey>>();
-        ValueSerializer = scope.ServiceProvider.GetService<ISerializer<TValue>>();
-
-        // Setting both types of serializers is an error.
-        if (KeySerializer == null)
-        {
-            AsyncKeySerializer = scope.ServiceProvider.GetService<IAsyncSerializer<TKey>>();
-        }
-
-        if (ValueSerializer == null)
-        {
-            AsyncValueSerializer =scope.ServiceProvider.GetService<IAsyncSerializer<TValue>>();
-        }
-
-        if (dispose)
-        {
-            this.scope = scope;
-        }
+    internal ProducerAdapter(IServiceProvider services, IEnumerable<KeyValuePair<string, string>> config)
+        : base(config)
+    {
+        this.services = services;
     }
 
     public override IProducer<TKey, TValue> Build()
     {
+        ErrorHandler ??= services.GetServices<IErrorHandler>()
+            .Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
+
+        StatisticsHandler ??= services.GetServices<IStatisticsHandler>()
+            .Aggregate(default(Action<IClient, string>), (x, y) => x + y.OnStatistics);
+
+        LogHandler ??= services.GetServices<ILogHandler>()
+            .Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
+
+        // Setting both types of serializers is an error.
+        if ((KeySerializer ??= services.GetService<ISerializer<TKey>>()) == null)
+        {
+            AsyncKeySerializer ??= services.GetService<IAsyncSerializer<TKey>>();
+        }
+
+        if ((ValueSerializer ??= services.GetService<ISerializer<TValue>>()) == null)
+        {
+            AsyncValueSerializer ??= services.GetService<IAsyncSerializer<TValue>>();
+        }
+
         var producer = base.Build();
         return scope != null ? new ScopedProducer<TKey, TValue>(producer, scope) : producer;
     }
