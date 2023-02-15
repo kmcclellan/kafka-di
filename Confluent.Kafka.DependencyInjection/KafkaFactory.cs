@@ -1,11 +1,9 @@
 namespace Confluent.Kafka.DependencyInjection;
 
-using Confluent.Kafka.DependencyInjection.Builders;
 using Confluent.Kafka.DependencyInjection.Clients;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -24,19 +22,19 @@ sealed class KafkaFactory : IKafkaFactory
     public IProducer<TKey, TValue> CreateProducer<TKey, TValue>(
         IEnumerable<KeyValuePair<string, string>>? configuration = null)
     {
-        return new ProducerAdapter<TKey, TValue>(Merge(configuration), scopes.CreateScope(), dispose: true).Build();
+        return new ScopedProducer<TKey, TValue>(scopes, Merge(configuration));
     }
 
     public IConsumer<TKey, TValue> CreateConsumer<TKey, TValue>(
         IEnumerable<KeyValuePair<string, string>>? configuration = null)
     {
-        return new ConsumerAdapter<TKey, TValue>(Merge(configuration), scopes.CreateScope(), dispose: true).Build();
+        return new ScopedConsumer<TKey, TValue>(scopes, Merge(configuration));
     }
 
-    IEnumerable<KeyValuePair<string, string>> Merge(IEnumerable<KeyValuePair<string, string>>? overrides)
+    IEnumerable<KeyValuePair<string, string>>? Merge(IEnumerable<KeyValuePair<string, string>>? configuration)
     {
-        return overrides != null
-            ? config?.Values.Concat(overrides) ?? overrides
-            : config?.Values ?? throw new InvalidOperationException("Configuration is required.");
+        return configuration != null
+            ? this.config?.Values.Concat(configuration) ?? configuration
+            : null;
     }
 }
