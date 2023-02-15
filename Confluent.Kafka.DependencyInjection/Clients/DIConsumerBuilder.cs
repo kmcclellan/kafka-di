@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class DIConsumerBuilder<TKey, TValue> : ConsumerBuilder<TKey, TValue>
 {
     readonly IEnumerable<IErrorHandler> errorHandlers;
@@ -21,7 +22,7 @@ sealed class DIConsumerBuilder<TKey, TValue> : ConsumerBuilder<TKey, TValue>
     readonly IAsyncDeserializer<TValue>? asyncValueDeserializer;
 
     public DIConsumerBuilder(
-        ConfigWrapper config,
+        ConsumerConfig config,
         IEnumerable<IErrorHandler> errorHandlers,
         IEnumerable<IStatisticsHandler> statisticsHandlers,
         IEnumerable<ILogHandler> logHandlers,
@@ -32,7 +33,7 @@ sealed class DIConsumerBuilder<TKey, TValue> : ConsumerBuilder<TKey, TValue>
         IDeserializer<TValue>? valueDeserializer = null,
         IAsyncDeserializer<TKey>? asyncKeyDeserializer = null,
         IAsyncDeserializer<TValue>? asyncValueDeserializer = null)
-        : base(config.Values)
+        : base(config)
     {
         this.errorHandlers = errorHandlers;
         this.statisticsHandlers = statisticsHandlers;

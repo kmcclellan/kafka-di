@@ -1,7 +1,5 @@
 namespace Confluent.Kafka.DependencyInjection.Clients;
 
-using Confluent.Kafka.DependencyInjection.Handlers;
-
 using Microsoft.Extensions.DependencyInjection;
 
 using System;
@@ -14,33 +12,27 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
     readonly IProducer<TKey, TValue> producer;
     readonly IDisposable scope;
 
-    public ScopedProducer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>>? config = null)
+    public ScopedProducer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>>? config)
     {
         IServiceScope scope;
         this.scope = scope = scopes.CreateScope();
-        this.producer = GetBuilder(scope.ServiceProvider, config).Build();
+
+        if (config != null)
+        {
+            var merged = scope.ServiceProvider.GetRequiredService<ProducerConfig>();
+
+            foreach (var kvp in config)
+            {
+                merged.Set(kvp.Key, kvp.Value);
+            }
+        }
+
+        this.producer = scope.ServiceProvider.GetRequiredService<ProducerBuilder<TKey, TValue>>().Build();
     }
 
     public Handle Handle => producer.Handle;
 
     public string Name => producer.Name;
-
-    static ProducerBuilder<TKey, TValue> GetBuilder(
-        IServiceProvider services,
-        IEnumerable<KeyValuePair<string, string>>? config)
-    {
-       return config != null
-            ? new DIProducerBuilder<TKey, TValue>(
-                new(config),
-                services.GetServices<IErrorHandler>(),
-                services.GetServices<IStatisticsHandler>(),
-                services.GetServices<ILogHandler>(),
-                services.GetService<ISerializer<TKey>>(),
-                services.GetService<ISerializer<TValue>>(),
-                services.GetService<IAsyncSerializer<TKey>>(),
-                services.GetService<IAsyncSerializer<TValue>>())
-            : services.GetRequiredService<ProducerBuilder<TKey, TValue>>();
-    }
 
     public int AddBrokers(string brokers)
     {

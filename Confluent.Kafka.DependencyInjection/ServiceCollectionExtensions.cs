@@ -30,16 +30,30 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IEnumerable<KeyValuePair<string, string>>? configuration = null)
     {
-        services.TryAddSingleton<IKafkaFactory, KafkaFactory>();
-        services.AddAdapters();
+        if (services == null) throw new ArgumentNullException(nameof(services));
 
         if (configuration != null)
         {
-            services.AddSingleton(typeof(IProducer<,>), typeof(ServiceProducer<,>))
-                .AddSingleton(typeof(IConsumer<,>), typeof(ServiceConsumer<,>));
-
-            services.AddSingleton(new ConfigWrapper(configuration));
+            services.AddSingleton(new ConfigureKafka(configuration));
         }
+
+        AddConfig<ProducerConfig>(services);
+        AddConfig<ConsumerConfig>(services);
+
+        services.TryAddSingleton<IErrorHandler, GlobalHandler>();
+        services.TryAddSingleton<ILogHandler, GlobalHandler>();
+        services.TryAddSingleton<IPartitionsAssignedHandler, AssignmentHandler>();
+        services.TryAddSingleton<IPartitionsRevokedHandler, AssignmentHandler>();
+        services.TryAddSingleton<IOffsetsCommittedHandler, CommitHandler>();
+
+        services.TryAddTransient(typeof(ProducerBuilder<,>), typeof(DIProducerBuilder<,>));
+        services.TryAddTransient(typeof(ConsumerBuilder<,>), typeof(DIConsumerBuilder<,>));
+
+        // These must be scoped to consume scoped config.
+        services.TryAddScoped(typeof(IProducer<,>), typeof(ServiceProducer<,>));
+        services.TryAddScoped(typeof(IConsumer<,>), typeof(ServiceConsumer<,>));
+
+        services.TryAddSingleton<IKafkaFactory, KafkaFactory>();
 
         return services;
     }
@@ -87,45 +101,88 @@ public static class ServiceCollectionExtensions
         ServiceLifetime lifetime = ServiceLifetime.Scoped)
             where TImplementation : TService
     {
-        if (services == null) throw new ArgumentNullException(nameof(services));
+        AddKafkaClient(services);
 
-        services.TryAddSingleton(typeof(ServiceProducer<,,>));
-        services.TryAddSingleton(typeof(ServiceConsumer<,,>));
+        services.AddSingleton(x => new KafkaScope<TImplementation>(x.CreateScope(), configuration));
 
-        services.AddAdapters();
-        services.AddSingleton(new ConfigWrapper<TImplementation>(configuration));
+        services.Add(
+            ServiceDescriptor.Describe(
+                typeof(TService),
+                x => x.GetRequiredService<KafkaScope<TImplementation>>().Resolve(),
+                lifetime));
 
-        // Factory allows us to use custom service provider for constructor args.
-        var factory = ActivatorUtilities.CreateFactory(typeof(TImplementation), Array.Empty<Type>());
-        var mappings = new Dictionary<Type, Type>
-        {
-            { typeof(IProducer<,>), typeof(ServiceProducer<,,>) },
-            { typeof(IConsumer<,>), typeof(ServiceConsumer<,,>) },
-        };
-
-        object CreateClient(IServiceProvider sp)
-        {
-            // Mapper will resolve services using the correct receiver type.
-            var mapper = new GenericServiceMapper<TImplementation>(sp, mappings);
-            return factory(mapper, Array.Empty<object>());
-        }
-
-        services.Add(new ServiceDescriptor(typeof(TService), CreateClient, lifetime));
         return services;
     }
 
-    static IServiceCollection AddAdapters(this IServiceCollection services)
+    static void AddConfig<T>(IServiceCollection services)
+        where T : Config, new()
     {
-        services.TryAddSingleton<IErrorHandler, GlobalHandler>();
-        services.TryAddSingleton<ILogHandler, GlobalHandler>();
-        services.TryAddSingleton<IPartitionsAssignedHandler, AssignmentHandler>();
-        services.TryAddSingleton<IPartitionsRevokedHandler, AssignmentHandler>();
-        services.TryAddSingleton<IOffsetsCommittedHandler, CommitHandler>();
+        // Scopes allow us to resolve/override values used by builders.
+        services.TryAddScoped(
+            provider =>
+            {
+                var merged = new T();
 
-        // These must be transient to consume scoped handlers.
-        services.TryAddTransient(typeof(ProducerBuilder<,>), typeof(DIProducerBuilder<,>));
-        services.TryAddTransient(typeof(ConsumerBuilder<,>), typeof(DIConsumerBuilder<,>));
+                foreach (var setup in provider.GetServices<ConfigureKafka>())
+                {
+                    setup.Configure(merged);
+                }
 
-        return services;
+                return merged;
+            });
+    }
+
+    class ConfigureKafka
+    {
+        readonly IEnumerable<KeyValuePair<string, string>> values;
+
+        public ConfigureKafka(IEnumerable<KeyValuePair<string, string>> values)
+        {
+            this.values = values;
+        }
+
+        public void Configure(Config config)
+        {
+            foreach (var kvp in values)
+            {
+                config.Set(kvp.Key, kvp.Value);
+            }
+        }
+    }
+
+    class KafkaScope<TClient> : IDisposable
+    {
+        static readonly ObjectFactory Factory = ActivatorUtilities.CreateFactory(typeof(TClient), Array.Empty<Type>());
+
+        readonly IServiceScope scope;
+
+        public KafkaScope(IServiceScope scope, IEnumerable<KeyValuePair<string, string>> config)
+        {
+            this.scope = scope;
+
+            Configure<ProducerConfig>(config);
+            Configure<ConsumerConfig>(config);
+        }
+
+        void Configure<T>(IEnumerable<KeyValuePair<string, string>> config)
+            where T : Config
+        {
+            var merged = scope.ServiceProvider.GetRequiredService<T>();
+
+            foreach (var kvp in config)
+            {
+                merged.Set(kvp.Key, kvp.Value);
+            }
+        }
+
+        public object Resolve()
+        {
+            return Factory(scope.ServiceProvider, Array.Empty<object>());
+        }
+
+        public void Dispose()
+        {
+            scope.Dispose();
+        }
     }
 }
