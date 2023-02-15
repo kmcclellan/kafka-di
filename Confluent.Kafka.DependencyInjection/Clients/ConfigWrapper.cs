@@ -1,4 +1,4 @@
-namespace Confluent.Kafka.DependencyInjection.Builders;
+namespace Confluent.Kafka.DependencyInjection.Clients;
 
 using System.Collections.Generic;
 

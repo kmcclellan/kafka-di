@@ -1,7 +1,5 @@
 namespace Confluent.Kafka.DependencyInjection.Clients;
 
-using Confluent.Kafka.DependencyInjection.Builders;
-
 using Microsoft.Extensions.DependencyInjection;
 
 using System.Collections.Generic;

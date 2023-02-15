@@ -1,6 +1,5 @@
 namespace Confluent.Kafka.DependencyInjection;
 
-using Confluent.Kafka.DependencyInjection.Builders;
 using Confluent.Kafka.DependencyInjection.Clients;
 
 using Microsoft.Extensions.DependencyInjection;

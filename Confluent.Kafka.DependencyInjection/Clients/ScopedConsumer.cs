@@ -1,6 +1,5 @@
 namespace Confluent.Kafka.DependencyInjection.Clients;
 
-using Confluent.Kafka.DependencyInjection.Builders;
 using Confluent.Kafka.DependencyInjection.Handlers;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -38,7 +37,7 @@ class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
         IEnumerable<KeyValuePair<string, string>>? config)
     {
         return config != null
-            ? new ConsumerAdapter<TKey, TValue>(
+            ? new DIConsumerBuilder<TKey, TValue>(
                 new(config),
                 services.GetServices<IErrorHandler>(),
                 services.GetServices<IStatisticsHandler>(),

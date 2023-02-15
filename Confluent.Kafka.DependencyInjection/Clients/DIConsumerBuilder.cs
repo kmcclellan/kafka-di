@@ -1,4 +1,4 @@
-namespace Confluent.Kafka.DependencyInjection.Builders;
+namespace Confluent.Kafka.DependencyInjection.Clients;
 
 using Confluent.Kafka.DependencyInjection.Handlers;
 using Confluent.Kafka.SyncOverAsync;
@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-sealed class ConsumerAdapter<TKey, TValue> : ConsumerBuilder<TKey, TValue>
+sealed class DIConsumerBuilder<TKey, TValue> : ConsumerBuilder<TKey, TValue>
 {
     readonly IEnumerable<IErrorHandler> errorHandlers;
     readonly IEnumerable<IStatisticsHandler> statisticsHandlers;
@@ -20,7 +20,7 @@ sealed class ConsumerAdapter<TKey, TValue> : ConsumerBuilder<TKey, TValue>
     readonly IAsyncDeserializer<TKey>? asyncKeyDeserializer;
     readonly IAsyncDeserializer<TValue>? asyncValueDeserializer;
 
-    public ConsumerAdapter(
+    public DIConsumerBuilder(
         ConfigWrapper config,
         IEnumerable<IErrorHandler> errorHandlers,
         IEnumerable<IStatisticsHandler> statisticsHandlers,

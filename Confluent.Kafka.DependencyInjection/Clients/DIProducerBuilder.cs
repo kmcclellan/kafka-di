@@ -1,4 +1,4 @@
-namespace Confluent.Kafka.DependencyInjection.Builders;
+namespace Confluent.Kafka.DependencyInjection.Clients;
 
 using Confluent.Kafka.DependencyInjection.Handlers;
 
@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-sealed class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>
+sealed class DIProducerBuilder<TKey, TValue> : ProducerBuilder<TKey, TValue>
 {
     readonly IEnumerable<IErrorHandler> errorHandlers;
     readonly IEnumerable<IStatisticsHandler> statisticsHandlers;
@@ -16,7 +16,7 @@ sealed class ProducerAdapter<TKey, TValue> : ProducerBuilder<TKey, TValue>
     readonly IAsyncSerializer<TKey>? asyncKeySerializer;
     readonly IAsyncSerializer<TValue>? asyncValueSerializer;
 
-    public ProducerAdapter(
+    public DIProducerBuilder(
         ConfigWrapper config,
         IEnumerable<IErrorHandler> errorHandlers,
         IEnumerable<IStatisticsHandler> statisticsHandlers,
