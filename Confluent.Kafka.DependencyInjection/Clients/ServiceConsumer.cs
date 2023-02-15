@@ -21,17 +21,12 @@ class ServiceConsumer<TKey, TValue> : ScopedConsumer<TKey, TValue>
     bool closed;
 
     public ServiceConsumer(IServiceScopeFactory scopes, ConfigWrapper config)
-        : this(scopes, config.Values)
+        : base(scopes, config.Values)
     {
     }
 
-    internal ServiceConsumer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>> config)
-        : this(scopes.CreateScope(), config)
-    {
-    }
-
-    ServiceConsumer(IServiceScope scope, IEnumerable<KeyValuePair<string, string>> config)
-        : base(new ConsumerAdapter<TKey, TValue>(scope.ServiceProvider, config).Build(), scope)
+    protected ServiceConsumer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>> config)
+        : base(scopes, config)
     {
     }
 

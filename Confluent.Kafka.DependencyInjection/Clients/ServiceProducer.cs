@@ -23,13 +23,8 @@ class ServiceProducer<TKey, TValue> : ScopedProducer<TKey, TValue>
     {
     }
 
-    internal ServiceProducer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>> config)
-        : this(scopes.CreateScope(), config)
-    {
-    }
-
-    ServiceProducer(IServiceScope scope, IEnumerable<KeyValuePair<string, string>> config)
-        : base(new ProducerAdapter<TKey, TValue>(scope.ServiceProvider, config).Build(), scope)
+    protected ServiceProducer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>> config)
+        : base(scopes, config)
     {
     }
 }

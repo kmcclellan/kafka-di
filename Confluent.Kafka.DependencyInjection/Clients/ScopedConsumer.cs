@@ -1,5 +1,10 @@
 namespace Confluent.Kafka.DependencyInjection.Clients;
 
+using Confluent.Kafka.DependencyInjection.Builders;
+using Confluent.Kafka.DependencyInjection.Handlers;
+
+using Microsoft.Extensions.DependencyInjection;
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -9,10 +14,11 @@ class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     readonly IConsumer<TKey, TValue> consumer;
     readonly IDisposable scope;
 
-    public ScopedConsumer(IConsumer<TKey, TValue> consumer, IDisposable scope)
+    public ScopedConsumer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>>? config = null)
     {
-        this.consumer = consumer;
-        this.scope = scope;
+        IServiceScope scope;
+        this.scope = scope = scopes.CreateScope();
+        this.consumer = GetBuilder(scope.ServiceProvider, config).Build();
     }
 
     public Handle Handle => consumer.Handle;
@@ -26,6 +32,26 @@ class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     public string MemberId => consumer.MemberId;
 
     public IConsumerGroupMetadata ConsumerGroupMetadata => consumer.ConsumerGroupMetadata;
+
+    static ConsumerBuilder<TKey, TValue> GetBuilder(
+        IServiceProvider services,
+        IEnumerable<KeyValuePair<string, string>>? config)
+    {
+        return config != null
+            ? new ConsumerAdapter<TKey, TValue>(
+                new(config),
+                services.GetServices<IErrorHandler>(),
+                services.GetServices<IStatisticsHandler>(),
+                services.GetServices<ILogHandler>(),
+                services.GetServices<IPartitionsAssignedHandler>(),
+                services.GetServices<IPartitionsRevokedHandler>(),
+                services.GetServices<IOffsetsCommittedHandler>(),
+                services.GetService<IDeserializer<TKey>>(),
+                services.GetService<IDeserializer<TValue>>(),
+                services.GetService<IAsyncDeserializer<TKey>>(),
+                services.GetService<IAsyncDeserializer<TValue>>())
+            : services.GetRequiredService<ConsumerBuilder<TKey, TValue>>();
+    }
 
     public int AddBrokers(string brokers)
     {
