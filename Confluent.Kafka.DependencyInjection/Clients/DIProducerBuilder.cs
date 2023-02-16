@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class DIProducerBuilder<TKey, TValue> : ProducerBuilder<TKey, TValue>
 {
     readonly IEnumerable<IErrorHandler> errorHandlers;
@@ -17,7 +18,7 @@ sealed class DIProducerBuilder<TKey, TValue> : ProducerBuilder<TKey, TValue>
     readonly IAsyncSerializer<TValue>? asyncValueSerializer;
 
     public DIProducerBuilder(
-        ConfigWrapper config,
+        ProducerConfig config,
         IEnumerable<IErrorHandler> errorHandlers,
         IEnumerable<IStatisticsHandler> statisticsHandlers,
         IEnumerable<ILogHandler> logHandlers,
@@ -25,7 +26,7 @@ sealed class DIProducerBuilder<TKey, TValue> : ProducerBuilder<TKey, TValue>
         ISerializer<TValue>? valueSerializer = null,
         IAsyncSerializer<TKey>? asyncKeySerializer = null,
         IAsyncSerializer<TValue>? asyncValueSerializer = null)
-        : base(config.Values)
+        : base(config)
     {
         this.errorHandlers = errorHandlers;
         this.statisticsHandlers = statisticsHandlers;

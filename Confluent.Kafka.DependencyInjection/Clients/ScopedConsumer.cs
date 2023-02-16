@@ -1,7 +1,5 @@
 namespace Confluent.Kafka.DependencyInjection.Clients;
 
-using Confluent.Kafka.DependencyInjection.Handlers;
-
 using Microsoft.Extensions.DependencyInjection;
 
 using System;
@@ -13,11 +11,22 @@ class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     readonly IConsumer<TKey, TValue> consumer;
     readonly IDisposable scope;
 
-    public ScopedConsumer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>>? config = null)
+    public ScopedConsumer(IServiceScopeFactory scopes, IEnumerable<KeyValuePair<string, string>>? config)
     {
         IServiceScope scope;
         this.scope = scope = scopes.CreateScope();
-        this.consumer = GetBuilder(scope.ServiceProvider, config).Build();
+
+        if (config != null)
+        {
+            var merged = scope.ServiceProvider.GetRequiredService<ConsumerConfig>();
+
+            foreach (var kvp in config)
+            {
+                merged.Set(kvp.Key, kvp.Value);
+            }
+        }
+
+        this.consumer = scope.ServiceProvider.GetRequiredService<ConsumerBuilder<TKey, TValue>>().Build();
     }
 
     public Handle Handle => consumer.Handle;
@@ -31,26 +40,6 @@ class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     public string MemberId => consumer.MemberId;
 
     public IConsumerGroupMetadata ConsumerGroupMetadata => consumer.ConsumerGroupMetadata;
-
-    static ConsumerBuilder<TKey, TValue> GetBuilder(
-        IServiceProvider services,
-        IEnumerable<KeyValuePair<string, string>>? config)
-    {
-        return config != null
-            ? new DIConsumerBuilder<TKey, TValue>(
-                new(config),
-                services.GetServices<IErrorHandler>(),
-                services.GetServices<IStatisticsHandler>(),
-                services.GetServices<ILogHandler>(),
-                services.GetServices<IPartitionsAssignedHandler>(),
-                services.GetServices<IPartitionsRevokedHandler>(),
-                services.GetServices<IOffsetsCommittedHandler>(),
-                services.GetService<IDeserializer<TKey>>(),
-                services.GetService<IDeserializer<TValue>>(),
-                services.GetService<IAsyncDeserializer<TKey>>(),
-                services.GetService<IAsyncDeserializer<TValue>>())
-            : services.GetRequiredService<ConsumerBuilder<TKey, TValue>>();
-    }
 
     public int AddBrokers(string brokers)
     {

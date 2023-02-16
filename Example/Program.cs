@@ -12,10 +12,13 @@ await using var provider = new ServiceCollection()
     .AddKafkaClient(
         new Dictionary<string, string>
         {
+            { "client.id", "global" },
             { "bootstrap.servers", "localhost:9092" },
             { "enable.idempotence", "true" },
             { "group.id", "group1" },
         })
+    .AddKafkaClient<TestClient1>(new ClientConfig { ClientId = "client1"  })
+    .AddKafkaClient<TestClient2>(new ClientConfig { ClientId = "client2"  })
     .BuildServiceProvider();
 
 var producer = provider.GetRequiredService<IProducer<Null, byte[]>>();
@@ -25,15 +28,40 @@ using var producer2 = provider.GetRequiredService<ProducerBuilder<Null, byte[]>>
 using var consumer2 = provider.GetRequiredService<ConsumerBuilder<Null, byte[]>>().Build();
 
 using var producer3 = provider.GetRequiredService<IKafkaFactory>()
-    .CreateProducer<Null, byte[]>();
+    .CreateProducer<Null, byte[]>(new ClientConfig { ClientId = "factory1" });
 
 using var consumer3 = provider.GetRequiredService<IKafkaFactory>()
-    .CreateConsumer<Null, byte[]>();
+    .CreateConsumer<Null, byte[]>(new ClientConfig { ClientId = "factory2" });
 
-foreach (var client in new IClient[] { producer, producer2, producer3, consumer, consumer2, consumer3 })
+var producer4 = provider.GetRequiredService<TestClient1>().Producer;
+var consumer4 = provider.GetRequiredService<TestClient2>().Consumer;
+
+var clients = new IClient[] { producer, producer2, producer3, producer4, consumer, consumer2, consumer3, consumer4 };
+
+foreach (var client in clients)
 {
     Console.WriteLine($"Resolved client: {client.Name}");
 }
 
 consumer2.Close();
 consumer3.Close();
+
+class TestClient1
+{
+    public TestClient1(IProducer<Null, Null> producer)
+    {
+        Producer = producer;
+    }
+
+    public IProducer<Null, Null> Producer { get; }
+}
+
+class TestClient2
+{
+    public TestClient2(IConsumer<Null, Null> consumer)
+    {
+        Consumer = consumer;
+    }
+
+    public IConsumer<Null, Null> Consumer { get; }
+}
