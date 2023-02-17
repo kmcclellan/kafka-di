@@ -23,6 +23,7 @@ await using var provider = new ServiceCollection()
 
 var producer = provider.GetRequiredService<IProducer<Null, byte[]>>();
 var consumer = provider.GetRequiredService<IConsumer<Null, byte[]>>();
+var adminClient = provider.GetRequiredService<IAdminClient>();
 
 using var producer2 = provider.GetRequiredService<ProducerBuilder<Null, byte[]>>().Build();
 using var consumer2 = provider.GetRequiredService<ConsumerBuilder<Null, byte[]>>().Build();
@@ -36,7 +37,18 @@ using var consumer3 = provider.GetRequiredService<IKafkaFactory>()
 var producer4 = provider.GetRequiredService<TestClient1>().Producer;
 var consumer4 = provider.GetRequiredService<TestClient2>().Consumer;
 
-var clients = new IClient[] { producer, producer2, producer3, producer4, consumer, consumer2, consumer3, consumer4 };
+var clients = new IClient[]
+{
+    producer,
+    producer2,
+    producer3,
+    producer4,
+    consumer,
+    consumer2,
+    consumer3,
+    consumer4,
+    adminClient,
+};
 
 foreach (var client in clients)
 {

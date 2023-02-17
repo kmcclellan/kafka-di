@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
 
         AddConfig<ProducerConfig>(services);
         AddConfig<ConsumerConfig>(services);
+        AddConfig<AdminClientConfig>(services);
 
         services.TryAddSingleton<IErrorHandler, GlobalHandler>();
         services.TryAddSingleton<ILogHandler, GlobalHandler>();
@@ -48,10 +49,12 @@ public static class ServiceCollectionExtensions
 
         services.TryAddTransient(typeof(ProducerBuilder<,>), typeof(DIProducerBuilder<,>));
         services.TryAddTransient(typeof(ConsumerBuilder<,>), typeof(DIConsumerBuilder<,>));
+        services.TryAddTransient<AdminClientBuilder, DIAdminClientBuilder>();
 
         // These must be scoped to consume scoped config.
         services.TryAddScoped(typeof(IProducer<,>), typeof(ServiceProducer<,>));
         services.TryAddScoped(typeof(IConsumer<,>), typeof(ServiceConsumer<,>));
+        services.TryAddScoped<IAdminClient, ServiceAdminClient>();
 
         services.TryAddSingleton<IKafkaFactory, KafkaFactory>();
 
@@ -162,6 +165,7 @@ public static class ServiceCollectionExtensions
 
             Configure<ProducerConfig>(config);
             Configure<ConsumerConfig>(config);
+            Configure<AdminClientConfig>(config);
         }
 
         void Configure<T>(IEnumerable<KeyValuePair<string, string>> config)
