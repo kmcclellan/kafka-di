@@ -3,11 +3,6 @@ namespace Confluent.Kafka.DependencyInjection.Clients;
 using Confluent.Kafka.DependencyInjection.Handlers;
 using Confluent.Kafka.SyncOverAsync;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class DIConsumerBuilder<TKey, TValue> : ConsumerBuilder<TKey, TValue>
 {
     readonly IEnumerable<IErrorHandler> errorHandlers;

@@ -1,7 +1,5 @@
 namespace Confluent.Kafka.DependencyInjection.Handlers;
 
-using System;
-
 /// <summary>
 /// A DI-friendly contract for Kafka statistics handling.
 /// </summary>

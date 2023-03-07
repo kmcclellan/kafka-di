@@ -7,9 +7,6 @@ using Confluent.Kafka.DependencyInjection.Handlers.Default;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-using System;
-using System.Collections.Generic;
-
 /// <summary>
 /// Extensions to configure Kafka producers and consumers as services.
 /// </summary>

@@ -2,10 +2,6 @@ namespace Confluent.Kafka.DependencyInjection.Logging;
 
 using Microsoft.Extensions.Logging;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 /// <summary>
 /// Extensions for logging common Kafka scenarios.
 /// </summary>

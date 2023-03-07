@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 
 using System.Collections.Concurrent;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class GlobalHandler : IErrorHandler, ILogHandler
 {
     readonly ConcurrentDictionary<string, ILogger> libLoggers = new();

@@ -2,11 +2,6 @@ namespace Confluent.Kafka.DependencyInjection.Clients;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
 class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
 {
     readonly IProducer<TKey, TValue> producer;

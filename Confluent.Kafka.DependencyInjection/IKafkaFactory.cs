@@ -2,8 +2,6 @@ namespace Confluent.Kafka.DependencyInjection;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using System.Collections.Generic;
-
 /// <summary>
 /// A contract for creating configured Kafka producers and consumers.
 /// </summary>

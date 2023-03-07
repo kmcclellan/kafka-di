@@ -4,9 +4,6 @@ using Confluent.Kafka.DependencyInjection.Clients;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using System.Collections.Generic;
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class KafkaFactory : IKafkaFactory
 {
     readonly IServiceScopeFactory scopes;

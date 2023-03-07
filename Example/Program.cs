@@ -4,9 +4,6 @@ using Confluent.Kafka.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-using System;
-using System.Collections.Generic;
-
 await using var provider = new ServiceCollection()
     .AddLogging(x => x.AddConsole())
     .AddKafkaClient(

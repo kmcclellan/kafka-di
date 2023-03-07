@@ -4,10 +4,6 @@ using Confluent.Kafka.DependencyInjection.Logging;
 
 using Microsoft.Extensions.Logging;
 
-using System.Collections.Generic;
-using System.Linq;
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class AssignmentHandler : IPartitionsAssignedHandler, IPartitionsRevokedHandler
 {
     readonly ILogger<AssignmentHandler> logger;

@@ -2,10 +2,6 @@ namespace Confluent.Kafka.DependencyInjection.Clients;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
-
 class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 {
     readonly IConsumer<TKey, TValue> consumer;

@@ -1,8 +1,5 @@
 namespace Confluent.Kafka.DependencyInjection.Handlers;
 
-using System;
-using System.Collections.Generic;
-
 /// <summary>
 /// A DI-friendly contract for handling Kafka revocations.
 /// </summary>

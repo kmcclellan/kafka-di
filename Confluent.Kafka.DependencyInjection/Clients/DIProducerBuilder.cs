@@ -2,11 +2,6 @@ namespace Confluent.Kafka.DependencyInjection.Clients;
 
 using Confluent.Kafka.DependencyInjection.Handlers;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812", Justification = "Instantiated by container")]
 sealed class DIProducerBuilder<TKey, TValue> : ProducerBuilder<TKey, TValue>
 {
     readonly IEnumerable<IErrorHandler> errorHandlers;

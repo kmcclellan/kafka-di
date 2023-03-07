@@ -1,8 +1,6 @@
 namespace Confluent.Kafka.DependencyInjection.Logging;
 
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Text;
 
 readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>

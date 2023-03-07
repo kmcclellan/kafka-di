@@ -4,10 +4,6 @@ using Confluent.Kafka.Admin;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 class ScopedAdminClient : IAdminClient
 {
     readonly IAdminClient client;
