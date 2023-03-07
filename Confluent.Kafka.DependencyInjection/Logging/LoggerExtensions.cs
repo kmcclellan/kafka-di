@@ -7,6 +7,10 @@ using Microsoft.Extensions.Logging;
 /// </summary>
 public static class LoggerExtensions
 {
+    static readonly EventId PartitionsAssigned = new(10, nameof(PartitionsAssigned)),
+        PartitionsRevoked = new(11, nameof(PartitionsRevoked)),
+        OffsetsCommitted = new(20, nameof(OffsetsCommitted));
+
     /// <summary>
     /// Logs a Kafka partition assignment.
     /// </summary>
@@ -24,7 +28,7 @@ public static class LoggerExtensions
 
         logger.Log(
             LogLevel.Information,
-            LogEvents.PartitionsAssigned,
+            PartitionsAssigned,
             new KafkaLogValues(client.Name, "Partitions assigned", offsets.ToList()),
             null,
             (x, _) => x.ToString());
@@ -47,7 +51,7 @@ public static class LoggerExtensions
 
         logger.Log(
             LogLevel.Information,
-            LogEvents.PartitionsRevoked,
+            PartitionsRevoked,
             new KafkaLogValues(client.Name, "Partitions revoked", offsets.ToList()),
             null,
             (x, _) => x.ToString());
@@ -70,7 +74,7 @@ public static class LoggerExtensions
 
         logger.Log(
             LogLevel.Information,
-            LogEvents.OffsetsCommitted,
+            OffsetsCommitted,
             new KafkaLogValues(client.Name, "Offsets committed", offsets.ToList()),
             null,
             (x, _) => x.ToString());
@@ -90,7 +94,7 @@ public static class LoggerExtensions
 
         logger.Log(
             error.IsFatal ? LogLevel.Critical : LogLevel.Error,
-            LogEvents.FromError(error.Code),
+            default,
             new KafkaLogValues(client.Name, error.ToString()),
             new KafkaException(error),
             (x, y) => x.ToString());
