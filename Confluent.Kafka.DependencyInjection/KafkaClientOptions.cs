@@ -19,6 +19,25 @@ public class KafkaClientOptions
     public ICollection<IKafkaClientSetup> Setups { get; } = new List<IKafkaClientSetup>();
 
     /// <summary>
+    /// Gets or sets the delegate to handle Kafka client errors.
+    /// </summary>
+    public Action<IClient, Error>? ErrorHandler { get; set; }
+
+    /// <summary>
+    /// Gets or sets the delegate to handle Kafka client statistics.
+    /// </summary>
+    /// <remarks>Statistics are JSON-serialized and described in <see href="https://github.com/confluentinc/librdkafka/blob/master/STATISTICS.md">librdkafka documentation</see>.</remarks>
+    public Action<IClient, string>? StatisticsHandler { get; set; }
+
+    /// <summary>
+    /// Gets or sets the delegate to handle periodic Kafka client authentication.
+    /// </summary>
+    /// <remarks>
+    /// For SASL/OAUTHBEARER authentication, handler is passed value of <c>sasl.oauthbearer.config</c> and should invoke <see cref="ClientExtensions.OAuthBearerSetToken(IClient, string, long, string, IDictionary{string, string})"/> or <see cref="ClientExtensions.OAuthBearerSetTokenFailure(IClient, string)"/>.
+    /// </remarks>
+    public Action<IClient, string>? AuthenticateHandler { get; set; }
+
+    /// <summary>
     /// Configures producers to use the specified serializer.
     /// </summary>
     /// <typeparam name="T">The producer key/value type.</typeparam>
