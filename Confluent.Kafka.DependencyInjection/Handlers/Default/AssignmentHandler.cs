@@ -20,7 +20,7 @@ sealed class AssignmentHandler : IPartitionsAssignedHandler, IPartitionsRevokedH
         var offsets = partitions.Select(
             p => new TopicPartitionOffset(p, Offset.Unset));
 
-        logger.LogKafkaAssignment(client, offsets);
+        this.logger.LogKafkaAssignment(client, offsets);
         return offsets;
     }
 
@@ -28,7 +28,7 @@ sealed class AssignmentHandler : IPartitionsAssignedHandler, IPartitionsRevokedH
         IClient client,
         IEnumerable<TopicPartitionOffset> offsets)
     {
-        logger.LogKafkaRevocation(client, offsets);
+        this.logger.LogKafkaRevocation(client, offsets);
         return Enumerable.Empty<TopicPartitionOffset>();
     }
 }

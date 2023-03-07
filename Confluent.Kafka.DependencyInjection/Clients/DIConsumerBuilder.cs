@@ -44,28 +44,28 @@ sealed class DIConsumerBuilder<TKey, TValue> : ConsumerBuilder<TKey, TValue>
 
     public override IConsumer<TKey, TValue> Build()
     {
-        ErrorHandler ??= errorHandlers.Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
+        this.ErrorHandler ??= this.errorHandlers.Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
 
-        StatisticsHandler ??= statisticsHandlers.Aggregate(
+        this.StatisticsHandler ??= this.statisticsHandlers.Aggregate(
             default(Action<IClient, string>),
             (x, y) => x + y.OnStatistics);
 
-        LogHandler ??= logHandlers.Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
+        this.LogHandler ??= this.logHandlers.Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
 
-        PartitionsAssignedHandler ??= assignHandlers.Aggregate(
+        this.PartitionsAssignedHandler ??= this.assignHandlers.Aggregate(
             default(Func<IClient, IEnumerable<TopicPartition>, IEnumerable<TopicPartitionOffset>>),
             (x, y) => x + y.OnPartitionsAssigned);
 
-        PartitionsRevokedHandler ??= revokeHandlers.Aggregate(
+        this.PartitionsRevokedHandler ??= this.revokeHandlers.Aggregate(
             default(Func<IClient, IEnumerable<TopicPartitionOffset>, IEnumerable<TopicPartitionOffset>>),
             (x, y) => x + y.OnPartitionsRevoked);
 
-        OffsetsCommittedHandler ??= commitHandlers.Aggregate(
+        this.OffsetsCommittedHandler ??= this.commitHandlers.Aggregate(
             default(Action<IClient, CommittedOffsets>),
             (x, y) => x + y.OnOffsetsCommitted);
 
-        KeyDeserializer ??= keyDeserializer ?? asyncKeyDeserializer?.AsSyncOverAsync();
-        ValueDeserializer ??=  valueDeserializer ?? asyncValueDeserializer?.AsSyncOverAsync();
+        this.KeyDeserializer ??= this.keyDeserializer ?? this.asyncKeyDeserializer?.AsSyncOverAsync();
+        this.ValueDeserializer ??= this.valueDeserializer ?? this.asyncValueDeserializer?.AsSyncOverAsync();
 
         return base.Build();
     }

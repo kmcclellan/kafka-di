@@ -16,19 +16,19 @@ readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
         this.offsets = offsets;
     }
 
-    public int Count => offsets == null ? 2 : 4;
+    public int Count => this.offsets == null ? 2 : 4;
 
     public KeyValuePair<string, object?> this[int index]
     {
         get
         {
-            return (offsets == null ? 4 * index : index) switch
+            return (this.offsets == null ? 4 * index : index) switch
             {
-                0 => new("KafkaClient", client),
-                1 => new("KafkaTopics", GetOffsetValues(x => x.Topic)),
-                2 => new("KafkaPartitions", GetOffsetValues(x => x.Partition.Value)),
-                3 => new("KafkaOffsets", GetOffsetValues(x => x.Offset.Value)),
-                4 => new("{OriginalMessage}", message),
+                0 => new("KafkaClient", this.client),
+                1 => new("KafkaTopics", this.GetOffsetValues(x => x.Topic)),
+                2 => new("KafkaPartitions", this.GetOffsetValues(x => x.Partition.Value)),
+                3 => new("KafkaOffsets", this.GetOffsetValues(x => x.Offset.Value)),
+                4 => new("{OriginalMessage}", this.message),
                 _ => throw new ArgumentOutOfRangeException(nameof(index)),
             };
         }
@@ -36,7 +36,7 @@ readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
 
     public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
     {
-        for (int i = 0; i < Count;)
+        for (int i = 0; i < this.Count;)
         {
             yield return this[i++];
         }
@@ -44,23 +44,23 @@ readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return GetEnumerator();
+        return this.GetEnumerator();
     }
 
     public override string ToString()
     {
         var builder = new StringBuilder()
             .Append('[')
-            .Append(client)
+            .Append(this.client)
             .Append(']')
             .Append(' ')
-            .Append(message);
+            .Append(this.message);
 
-        if (offsets != null)
+        if (this.offsets != null)
         {
             builder.AppendLine(":");
 
-            foreach (var tpo in offsets)
+            foreach (var tpo in this.offsets)
             {
                 builder.AppendLine(tpo.ToString());
             }
@@ -71,13 +71,13 @@ readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
 
     T[]? GetOffsetValues<T>(Func<TopicPartitionOffset, T> func)
     {
-        if (offsets != null)
+        if (this.offsets != null)
         {
-            var values = new T[offsets.Count];
+            var values = new T[this.offsets.Count];
 
-            for (var i = 0; i < offsets.Count;)
+            for (var i = 0; i < this.offsets.Count;)
             {
-                values[i++] = func(offsets[i]);
+                values[i++] = func(this.offsets[i]);
             }
         }
 

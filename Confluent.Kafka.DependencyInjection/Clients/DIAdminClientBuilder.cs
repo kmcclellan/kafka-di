@@ -22,13 +22,13 @@ sealed class DIAdminClientBuilder : AdminClientBuilder
 
     public override IAdminClient Build()
     {
-        ErrorHandler ??= errorHandlers.Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
+        this.ErrorHandler ??= this.errorHandlers.Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
 
-        StatisticsHandler ??= statisticsHandlers.Aggregate(
+        this.StatisticsHandler ??= this.statisticsHandlers.Aggregate(
             default(Action<IClient, string>),
             (x, y) => x + y.OnStatistics);
 
-        LogHandler ??= logHandlers.Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
+        this.LogHandler ??= this.logHandlers.Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
 
         return base.Build();
     }

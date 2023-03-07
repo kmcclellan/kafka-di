@@ -25,13 +25,13 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         this.producer = scope.ServiceProvider.GetRequiredService<ProducerBuilder<TKey, TValue>>().Build();
     }
 
-    public Handle Handle => producer.Handle;
+    public Handle Handle => this.producer.Handle;
 
-    public string Name => producer.Name;
+    public string Name => this.producer.Name;
 
     public int AddBrokers(string brokers)
     {
-        return producer.AddBrokers(brokers);
+        return this.producer.AddBrokers(brokers);
     }
 
     public void Produce(
@@ -39,7 +39,7 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
     {
-        producer.Produce(topic, message, deliveryHandler);
+        this.producer.Produce(topic, message, deliveryHandler);
     }
 
     public void Produce(
@@ -47,7 +47,7 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
     {
-        producer.Produce(topicPartition, message, deliveryHandler);
+        this.producer.Produce(topicPartition, message, deliveryHandler);
     }
 
     public Task<DeliveryResult<TKey, TValue>> ProduceAsync(
@@ -55,7 +55,7 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         CancellationToken cancellationToken = default)
     {
-       return producer.ProduceAsync(topic, message, cancellationToken);
+       return this.producer.ProduceAsync(topic, message, cancellationToken);
     }
 
     public Task<DeliveryResult<TKey, TValue>> ProduceAsync(
@@ -63,12 +63,12 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         CancellationToken cancellationToken = default)
     {
-        return producer.ProduceAsync(topicPartition, message, cancellationToken);
+        return this.producer.ProduceAsync(topicPartition, message, cancellationToken);
     }
 
     public void BeginTransaction()
     {
-        producer.BeginTransaction();
+        this.producer.BeginTransaction();
     }
 
     public void CommitTransaction()
@@ -78,7 +78,7 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
 
     public void CommitTransaction(TimeSpan timeout)
     {
-        producer.CommitTransaction(timeout);
+        this.producer.CommitTransaction(timeout);
     }
 
     public void AbortTransaction()
@@ -88,12 +88,12 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
 
     public void AbortTransaction(TimeSpan timeout)
     {
-        producer.AbortTransaction(timeout);
+        this.producer.AbortTransaction(timeout);
     }
 
     public void InitTransactions(TimeSpan timeout)
     {
-        producer.InitTransactions(timeout);
+        this.producer.InitTransactions(timeout);
     }
 
     public void SendOffsetsToTransaction(
@@ -101,27 +101,27 @@ class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         IConsumerGroupMetadata groupMetadata,
         TimeSpan timeout)
     {
-        producer.SendOffsetsToTransaction(offsets, groupMetadata, timeout);
+        this.producer.SendOffsetsToTransaction(offsets, groupMetadata, timeout);
     }
 
     public int Poll(TimeSpan timeout)
     {
-        return producer.Poll(timeout);
+        return this.producer.Poll(timeout);
     }
 
     public void Flush(CancellationToken cancellationToken = default)
     {
-        producer.Flush(cancellationToken);
+        this.producer.Flush(cancellationToken);
     }
 
     public int Flush(TimeSpan timeout)
     {
-        return producer.Flush(timeout);
+        return this.producer.Flush(timeout);
     }
 
     public void Dispose()
     {
-        producer.Dispose();
-        scope.Dispose();
+        this.producer.Dispose();
+        this.scope.Dispose();
     }
 }

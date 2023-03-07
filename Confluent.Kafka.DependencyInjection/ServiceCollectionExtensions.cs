@@ -143,7 +143,7 @@ public static class ServiceCollectionExtensions
 
         public void Configure(Config config)
         {
-            foreach (var kvp in values)
+            foreach (var kvp in this.values)
             {
                 config.Set(kvp.Key, kvp.Value);
             }
@@ -160,15 +160,15 @@ public static class ServiceCollectionExtensions
         {
             this.scope = scope;
 
-            Configure<ProducerConfig>(config);
-            Configure<ConsumerConfig>(config);
-            Configure<AdminClientConfig>(config);
+            this.Configure<ProducerConfig>(config);
+            this.Configure<ConsumerConfig>(config);
+            this.Configure<AdminClientConfig>(config);
         }
 
         void Configure<T>(IEnumerable<KeyValuePair<string, string>> config)
             where T : Config
         {
-            var merged = scope.ServiceProvider.GetRequiredService<T>();
+            var merged = this.scope.ServiceProvider.GetRequiredService<T>();
 
             foreach (var kvp in config)
             {
@@ -178,12 +178,12 @@ public static class ServiceCollectionExtensions
 
         public object Resolve()
         {
-            return Factory(scope.ServiceProvider, Array.Empty<object>());
+            return Factory(this.scope.ServiceProvider, Array.Empty<object>());
         }
 
         public void Dispose()
         {
-            scope.Dispose();
+            this.scope.Dispose();
         }
     }
 }

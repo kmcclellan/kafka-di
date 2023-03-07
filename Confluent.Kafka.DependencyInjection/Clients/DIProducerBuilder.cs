@@ -34,23 +34,23 @@ sealed class DIProducerBuilder<TKey, TValue> : ProducerBuilder<TKey, TValue>
 
     public override IProducer<TKey, TValue> Build()
     {
-        ErrorHandler ??= errorHandlers.Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
+        this.ErrorHandler ??= this.errorHandlers.Aggregate(default(Action<IClient, Error>), (x, y) => x + y.OnError);
 
-        StatisticsHandler ??= statisticsHandlers.Aggregate(
+        this.StatisticsHandler ??= this.statisticsHandlers.Aggregate(
             default(Action<IClient, string>),
             (x, y) => x + y.OnStatistics);
 
-        LogHandler ??= logHandlers.Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
+        this.LogHandler ??= this.logHandlers.Aggregate(default(Action<IClient, LogMessage>), (x, y) => x + y.OnLog);
 
         // Setting both types of serializers is an error.
-        if ((KeySerializer ??= keySerializer) == null)
+        if ((this.KeySerializer ??= this.keySerializer) == null)
         {
-            AsyncKeySerializer ??= asyncKeySerializer;
+            this.AsyncKeySerializer ??= this.asyncKeySerializer;
         }
 
-        if ((ValueSerializer ??= valueSerializer) == null)
+        if ((this.ValueSerializer ??= this.valueSerializer) == null)
         {
-            AsyncValueSerializer ??= asyncValueSerializer;
+            this.AsyncValueSerializer ??= this.asyncValueSerializer;
         }
 
         return base.Build();

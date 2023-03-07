@@ -25,173 +25,173 @@ class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
         this.consumer = scope.ServiceProvider.GetRequiredService<ConsumerBuilder<TKey, TValue>>().Build();
     }
 
-    public Handle Handle => consumer.Handle;
+    public Handle Handle => this.consumer.Handle;
 
-    public string Name => consumer.Name;
+    public string Name => this.consumer.Name;
 
-    public List<string> Subscription => consumer.Subscription;
+    public List<string> Subscription => this.consumer.Subscription;
 
-    public List<TopicPartition> Assignment => consumer.Assignment;
+    public List<TopicPartition> Assignment => this.consumer.Assignment;
 
-    public string MemberId => consumer.MemberId;
+    public string MemberId => this.consumer.MemberId;
 
-    public IConsumerGroupMetadata ConsumerGroupMetadata => consumer.ConsumerGroupMetadata;
+    public IConsumerGroupMetadata ConsumerGroupMetadata => this.consumer.ConsumerGroupMetadata;
 
     public int AddBrokers(string brokers)
     {
-        return consumer.AddBrokers(brokers);
+        return this.consumer.AddBrokers(brokers);
     }
 
     public void Subscribe(string topic)
     {
-        consumer.Subscribe(topic);
+        this.consumer.Subscribe(topic);
     }
 
     public void Subscribe(IEnumerable<string> topics)
     {
-        consumer.Subscribe(topics);
+        this.consumer.Subscribe(topics);
     }
 
     public void Unsubscribe()
     {
-        consumer.Unsubscribe();
+        this.consumer.Unsubscribe();
     }
 
     public void Assign(TopicPartition partition)
     {
-        consumer.Assign(partition);
+        this.consumer.Assign(partition);
     }
 
     public void Assign(TopicPartitionOffset partition)
     {
-        consumer.Assign(partition);
+        this.consumer.Assign(partition);
     }
 
     public void Assign(IEnumerable<TopicPartitionOffset> partitions)
     {
-        consumer.Assign(partitions);
+        this.consumer.Assign(partitions);
     }
 
     public void Assign(IEnumerable<TopicPartition> partitions)
     {
-        consumer.Assign(partitions);
+        this.consumer.Assign(partitions);
     }
 
     public void IncrementalAssign(IEnumerable<TopicPartitionOffset> partitions)
     {
-        consumer.IncrementalAssign(partitions);
+        this.consumer.IncrementalAssign(partitions);
     }
 
     public void IncrementalAssign(IEnumerable<TopicPartition> partitions)
     {
-        consumer.IncrementalAssign(partitions);
+        this.consumer.IncrementalAssign(partitions);
     }
 
     public void Unassign()
     {
-        consumer.Unassign();
+        this.consumer.Unassign();
     }
 
     public void IncrementalUnassign(IEnumerable<TopicPartition> partitions)
     {
-        consumer.IncrementalUnassign(partitions);
+        this.consumer.IncrementalUnassign(partitions);
     }
 
     public void Seek(TopicPartitionOffset tpo)
     {
-        consumer.Seek(tpo);
+        this.consumer.Seek(tpo);
     }
 
     public ConsumeResult<TKey, TValue> Consume(int millisecondsTimeout)
     {
-        return consumer.Consume(millisecondsTimeout);
+        return this.consumer.Consume(millisecondsTimeout);
     }
 
     public ConsumeResult<TKey, TValue> Consume(CancellationToken cancellationToken = default)
     {
-        return consumer.Consume(cancellationToken);
+        return this.consumer.Consume(cancellationToken);
     }
 
     public ConsumeResult<TKey, TValue> Consume(TimeSpan timeout)
     {
-        return consumer.Consume(timeout);
+        return this.consumer.Consume(timeout);
     }
 
     public void Pause(IEnumerable<TopicPartition> partitions)
     {
-        consumer.Pause(partitions);
+        this.consumer.Pause(partitions);
     }
 
     public void Resume(IEnumerable<TopicPartition> partitions)
     {
-        consumer.Resume(partitions);
+        this.consumer.Resume(partitions);
     }
 
     public List<TopicPartitionOffset> Commit()
     {
-        return consumer.Commit();
+        return this.consumer.Commit();
     }
 
     public void Commit(ConsumeResult<TKey, TValue> result)
     {
-        consumer.Commit(result);
+        this.consumer.Commit(result);
     }
 
     public void Commit(IEnumerable<TopicPartitionOffset> offsets)
     {
-        consumer.Commit(offsets);
+        this.consumer.Commit(offsets);
     }
 
     public void StoreOffset(ConsumeResult<TKey, TValue> result)
     {
-        consumer.StoreOffset(result);
+        this.consumer.StoreOffset(result);
     }
 
     public void StoreOffset(TopicPartitionOffset offset)
     {
-        consumer.StoreOffset(offset);
+        this.consumer.StoreOffset(offset);
     }
 
     public Offset Position(TopicPartition partition)
     {
-        return consumer.Position(partition);
+        return this.consumer.Position(partition);
     }
 
     public List<TopicPartitionOffset> Committed(TimeSpan timeout)
     {
-        return consumer.Committed(timeout);
+        return this.consumer.Committed(timeout);
     }
 
     public List<TopicPartitionOffset> Committed(IEnumerable<TopicPartition> partitions, TimeSpan timeout)
     {
-        return consumer.Committed(partitions, timeout);
+        return this.consumer.Committed(partitions, timeout);
     }
 
     public WatermarkOffsets GetWatermarkOffsets(TopicPartition topicPartition)
     {
-        return consumer.GetWatermarkOffsets(topicPartition);
+        return this.consumer.GetWatermarkOffsets(topicPartition);
     }
 
     public WatermarkOffsets QueryWatermarkOffsets(TopicPartition topicPartition, TimeSpan timeout)
     {
-        return consumer.QueryWatermarkOffsets(topicPartition, timeout);
+        return this.consumer.QueryWatermarkOffsets(topicPartition, timeout);
     }
 
     public List<TopicPartitionOffset> OffsetsForTimes(
         IEnumerable<TopicPartitionTimestamp> timestampsToSearch,
         TimeSpan timeout)
     {
-        return consumer.OffsetsForTimes(timestampsToSearch, timeout);
+        return this.consumer.OffsetsForTimes(timestampsToSearch, timeout);
     }
 
     public virtual void Close()
     {
-        consumer.Close();
+        this.consumer.Close();
     }
 
     public virtual void Dispose()
     {
-        consumer.Dispose();
-        scope.Dispose();
+        this.consumer.Dispose();
+        this.scope.Dispose();
     }
 }

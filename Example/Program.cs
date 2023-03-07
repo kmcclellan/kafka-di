@@ -59,7 +59,7 @@ class TestClient1
 {
     public TestClient1(IProducer<Null, Null> producer)
     {
-        Producer = producer;
+        this.Producer = producer;
     }
 
     public IProducer<Null, Null> Producer { get; }
@@ -69,7 +69,7 @@ class TestClient2
 {
     public TestClient2(IConsumer<Null, Null> consumer)
     {
-        Consumer = consumer;
+        this.Consumer = consumer;
     }
 
     public IConsumer<Null, Null> Consumer { get; }

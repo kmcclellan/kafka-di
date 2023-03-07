@@ -21,7 +21,7 @@ sealed class CommitHandler : IOffsetsCommittedHandler
         {
             if (group.Key.IsError)
             {
-                logger.Log(
+                this.logger.Log(
                     group.Key.IsFatal ? LogLevel.Critical : LogLevel.Error,
                     LogEvents.FromError(group.Key.Code),
                     new KafkaLogValues(
@@ -33,7 +33,7 @@ sealed class CommitHandler : IOffsetsCommittedHandler
             }
             else
             {
-                logger.LogKafkaCommit(client, group);
+                this.logger.LogKafkaCommit(client, group);
             }
         }
     }

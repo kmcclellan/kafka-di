@@ -16,18 +16,18 @@ sealed class GlobalHandler : IErrorHandler, ILogHandler
     public GlobalHandler(ILoggerFactory factory)
     {
         this.factory = factory;
-        logger = factory.CreateLogger<GlobalHandler>();
+        this.logger = factory.CreateLogger<GlobalHandler>();
     }
 
     public void OnError(IClient client, Error error) =>
-        logger.LogKafkaError(client, error);
+        this.logger.LogKafkaError(client, error);
 
     public void OnLog(IClient client, LogMessage message)
     {
-        if (!libLoggers.TryGetValue(message.Facility, out var logger))
+        if (!this.libLoggers.TryGetValue(message.Facility, out var logger))
         {
-            logger = factory.CreateLogger($"rdkafka|{message.Facility}");
-            libLoggers[message.Facility] = logger;
+            logger = this.factory.CreateLogger($"rdkafka|{message.Facility}");
+            this.libLoggers[message.Facility] = logger;
         }
 
         logger.Log(

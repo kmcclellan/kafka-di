@@ -19,7 +19,7 @@ sealed class ServiceConsumer<TKey, TValue> : ScopedConsumer<TKey, TValue>
 
     public override void Dispose()
     {
-        if (!closed)
+        if (!this.closed)
         {
             // Close when disposed by ServiceProvider.
             this.Close();
