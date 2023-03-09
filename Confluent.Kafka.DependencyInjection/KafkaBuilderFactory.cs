@@ -23,12 +23,36 @@ sealed class KafkaBuilderFactory
 
     public ConsumerBuilder<TKey, TValue> CreateConsume<TKey, TValue>()
     {
-        return this.Create(
+        var builder = this.Create(
             x => new ConsumerBuilder<TKey, TValue>(x),
             (x, y) => x.Apply(y),
             (x, y) => x.SetErrorHandler(y),
             (x, y) => x.SetStatisticsHandler(y),
             (x, y) => x.SetOAuthBearerTokenRefreshHandler(y));
+
+        if (this.options.RebalanceHandler != null)
+        {
+            builder.SetPartitionsAssignedHandler(
+                (client, partitions) =>
+                {
+                    return this.options.RebalanceHandler(
+                        client,
+                        new(partitions.Select(x => new TopicPartitionOffset(x, Offset.Unset)).ToArray()));
+                });
+
+            builder.SetPartitionsRevokedHandler(
+                (x, y) => this.options.RebalanceHandler(x, new(y, revoked: true)));
+
+            builder.SetPartitionsLostHandler(
+                (x, y) => this.options.RebalanceHandler(x, new(y, lost: true)));
+        }
+
+        if (this.options.CommitHandler != null)
+        {
+            builder.SetOffsetsCommittedHandler(this.options.CommitHandler);
+        }
+
+        return builder;
     }
 
     public AdminClientBuilder CreateAdmin()

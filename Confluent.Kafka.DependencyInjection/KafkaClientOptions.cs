@@ -38,6 +38,19 @@ public class KafkaClientOptions
     public Action<IClient, string>? AuthenticateHandler { get; set; }
 
     /// <summary>
+    /// Gets or sets the delegate to handle and/or override offsets assigned, revoked, or lost as part of a consumer group rebalance.
+    /// </summary>
+    /// <remarks>
+    /// The consumer will continue using the returned offsets (none to accept revocation/loss).
+    /// </remarks>
+    public Func<IClient, RebalancedOffsets, IEnumerable<TopicPartitionOffset>>? RebalanceHandler { get; set; }
+
+    /// <summary>
+    /// Gets or sets the delegate to handle offsets and/or errors from automatic consumer commits (<c>enable.auto.commit</c>).
+    /// </summary>
+    public Action<IClient, CommittedOffsets>? CommitHandler { get; set; }
+
+    /// <summary>
     /// Configures producers to use the specified serializer.
     /// </summary>
     /// <typeparam name="T">The producer key/value type.</typeparam>
@@ -94,5 +107,17 @@ public class KafkaClientOptions
     public KafkaClientOptions Use<T>(IAsyncDeserializer<T> deserializer)
     {
         return this.Use(deserializer.AsSyncOverAsync());
+    }
+
+    /// <summary>
+    /// Configures producers to use the specified partitioner.
+    /// </summary>
+    /// <param name="partitioner">The partitioner delegate.</param>
+    /// <param name="topic">The topic to which this partitioner applies, or <see langword="null"/> for all.</param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Use(PartitionerDelegate partitioner, string? topic = null)
+    {
+        this.Setups.Add(new PartitionerSetup(partitioner, topic));
+        return this;
     }
 }
