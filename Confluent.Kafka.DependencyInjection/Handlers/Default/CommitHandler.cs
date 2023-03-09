@@ -15,26 +15,24 @@ sealed class CommitHandler : IOffsetsCommittedHandler
 
     public void OnOffsetsCommitted(IClient client, CommittedOffsets offsets)
     {
-        foreach (var group in offsets.Offsets.GroupBy(
-            o => o.Error.IsError ? o.Error : offsets.Error,
-            o => o.TopicPartitionOffset))
+        if (offsets.Error.IsError)
         {
-            if (group.Key.IsError)
+            this.logger.LogKafkaError(client, offsets.Error);
+        }
+        else
+        {
+            foreach (var group in offsets.Offsets.GroupBy(x => x.Error, x => x.TopicPartitionOffset))
             {
-                this.logger.Log(
-                    group.Key.IsFatal ? LogLevel.Critical : LogLevel.Error,
-                    default,
-                    new KafkaLogValues(
-                        client.Name,
-                        $"Commit failed for offsets: {group.Key.Reason}",
-                        group.ToList()),
-                    new KafkaException(group.Key),
-                    (x, _) => x.ToString());
+                if (group.Key.IsError)
+                {
+                    this.logger.LogKafkaError(client, group.Key);
+                }
+                else
+                {
+                    this.logger.LogKafkaCommit(client, group);
+                }
             }
-            else
-            {
-                this.logger.LogKafkaCommit(client, group);
-            }
+
         }
     }
 }

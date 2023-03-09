@@ -5,30 +5,27 @@ using System.Text;
 
 readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
 {
-    readonly string client;
     readonly string message;
-    readonly IReadOnlyList<TopicPartitionOffset>? offsets;
+    readonly string client;
+    readonly TopicPartitionOffset[]? offsets;
 
-    public KafkaLogValues(string client, string message, IReadOnlyList<TopicPartitionOffset>? offsets = null)
+    public KafkaLogValues(string message, string client, TopicPartitionOffset[]? offsets)
     {
-        this.client = client;
         this.message = message;
+        this.client = client;
         this.offsets = offsets;
     }
 
-    public int Count => this.offsets == null ? 2 : 4;
+    public int Count => this.offsets == null ? 1 : 2;
 
     public KeyValuePair<string, object?> this[int index]
     {
         get
         {
-            return (this.offsets == null ? 4 * index : index) switch
+            return (index) switch
             {
                 0 => new("KafkaClient", this.client),
-                1 => new("KafkaTopics", this.GetOffsetValues(x => x.Topic)),
-                2 => new("KafkaPartitions", this.GetOffsetValues(x => x.Partition.Value)),
-                3 => new("KafkaOffsets", this.GetOffsetValues(x => x.Offset.Value)),
-                4 => new("{OriginalMessage}", this.message),
+                1 => new("KafkaOffsets", this.offsets),
                 _ => throw new ArgumentOutOfRangeException(nameof(index)),
             };
         }
@@ -58,29 +55,15 @@ readonly struct KafkaLogValues : IReadOnlyList<KeyValuePair<string, object?>>
 
         if (this.offsets != null)
         {
-            builder.AppendLine(":");
+            builder.AppendLine();
 
             foreach (var tpo in this.offsets)
             {
+                builder.Append(' ', 2);
                 builder.AppendLine(tpo.ToString());
             }
         }
 
         return builder.ToString();
-    }
-
-    T[]? GetOffsetValues<T>(Func<TopicPartitionOffset, T> func)
-    {
-        if (this.offsets != null)
-        {
-            var values = new T[this.offsets.Count];
-
-            for (var i = 0; i < this.offsets.Count;)
-            {
-                values[i++] = func(this.offsets[i]);
-            }
-        }
-
-        return null;
     }
 }
