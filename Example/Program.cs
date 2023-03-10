@@ -2,6 +2,7 @@ using Confluent.Kafka;
 using Confluent.Kafka.DependencyInjection;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 await using var provider = new ServiceCollection()
     .AddKafkaClient(
@@ -12,6 +13,7 @@ await using var provider = new ServiceCollection()
             opts.Properties["enable.idempotence"] = "true";
             opts.Properties["group.id"] = "group1";
         })
+    .AddLogging(x => x.AddConsole())
     .BuildServiceProvider();
 
 var producer = provider.GetRequiredService<IProducer<Null, byte[]>>();
