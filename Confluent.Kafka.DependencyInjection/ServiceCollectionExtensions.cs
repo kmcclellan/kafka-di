@@ -1,5 +1,6 @@
 namespace Confluent.Kafka.DependencyInjection;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -20,7 +21,8 @@ public static class ServiceCollectionExtensions
     {
         if (services == null) throw new ArgumentNullException(nameof(services));
 
-        services.AddOptions();
+        services.AddOptions<KafkaClientOptions>()
+            .Configure<IServiceProvider>((x, y) => y.GetService<IConfiguration>()?.GetSection("Kafka").Bind(x));
 
         if (configure != null)
         {
