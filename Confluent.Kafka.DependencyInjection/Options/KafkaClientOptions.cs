@@ -8,6 +8,18 @@ public class KafkaClientOptions
     readonly List<IClientConfigProvider> config = new();
     readonly List<IClientBuilderSetup> setups = new();
 
+    readonly Dictionary<string, string> producerConfig = new();
+    readonly Dictionary<string, string> consumerConfig = new();
+    readonly Dictionary<string, string> adminClientConfig = new();
+
+    /// <summary>
+    /// Initializes the options.
+    /// </summary>
+    public KafkaClientOptions()
+    {
+        this.config.Add(new StaticConfig(this.producerConfig, this.consumerConfig, this.adminClientConfig));
+    }
+
     /// <summary>
     /// Configures client properties using a config provider.
     /// </summary>
@@ -16,6 +28,51 @@ public class KafkaClientOptions
     public KafkaClientOptions Configure(IClientConfigProvider provider)
     {
         this.config.Add(provider);
+        return this;
+    }
+
+    /// <summary>
+    /// Configures producer properties.
+    /// </summary>
+    /// <param name="config">The config properties.</param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Configure(ProducerConfig config)
+    {
+        foreach (var kvp in config ?? throw new ArgumentNullException(nameof(config)))
+        {
+            this.producerConfig[kvp.Key] = kvp.Value;
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Configures consumer properties.
+    /// </summary>
+    /// <param name="config">The config properties.</param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Configure(ConsumerConfig config)
+    {
+        foreach (var kvp in config ?? throw new ArgumentNullException(nameof(config)))
+        {
+            this.consumerConfig[kvp.Key] = kvp.Value;
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Configures admin client properties.
+    /// </summary>
+    /// <param name="config">The config properties.</param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Configure(AdminClientConfig config)
+    {
+        foreach (var kvp in config ?? throw new ArgumentNullException(nameof(config)))
+        {
+            this.adminClientConfig[kvp.Key] = kvp.Value;
+        }
+
         return this;
     }
 
