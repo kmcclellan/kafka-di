@@ -1,5 +1,7 @@
 namespace Confluent.Kafka.Options;
 
+using Confluent.Kafka.SyncOverAsync;
+
 /// <summary>
 /// Options for Kafka clients (producers, consumers, etc.).
 /// </summary>
@@ -85,6 +87,65 @@ public class KafkaClientOptions
     {
         this.setups.Add(setup);
         return this;
+    }
+
+    /// <summary>
+    /// Configures producers to use the specified serializer.
+    /// </summary>
+    /// <typeparam name="T">The producer key/value type.</typeparam>
+    /// <param name="serializer">The serializer.</param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Serialize<T>(ISerializer<T> serializer)
+    {
+        this.setups.Add(new SerdesSetup<T>(serializer: serializer));
+        return this;
+    }
+
+    /// <summary>
+    /// Configures producers to use the specified asynchronous serializer.
+    /// </summary>
+    /// <typeparam name="T">The producer key/value type.</typeparam>
+    /// <param name="serializer">The serializer.</param>
+    /// <param name="nonblocking">
+    /// Whether to prioritize thread resources over API flexibility.
+    /// If <see langword="true"/>, only task-based producing is supported (e.g. <see cref="IProducer{TKey, TValue}.ProduceAsync(TopicPartition, Message{TKey, TValue}, CancellationToken)"/>).
+    /// Must be set to <see langword="false"/> in order to use delivery callbacks (e.g. <see cref="IProducer{TKey, TValue}.Produce(TopicPartition, Message{TKey, TValue}, Action{DeliveryReport{TKey, TValue}})"/>).
+    /// </param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Serialize<T>(IAsyncSerializer<T> serializer, bool nonblocking = false)
+    {
+        if (nonblocking)
+        {
+            this.setups.Add(new SerdesSetup<T>(asyncSerializer: serializer));
+            return this;
+        }
+        else
+        {
+            return this.Serialize(serializer.AsSyncOverAsync());
+        }
+    }
+
+    /// <summary>
+    /// Configures consumers to use the specified deserializer.
+    /// </summary>
+    /// <typeparam name="T">The consumer key/value type.</typeparam>
+    /// <param name="deserializer">The deserializer.</param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Deserialize<T>(IDeserializer<T> deserializer)
+    {
+        this.setups.Add(new SerdesSetup<T>(deserializer: deserializer));
+        return this;
+    }
+
+    /// <summary>
+    /// Configures consumers to use the specified asynchronous deserializer.
+    /// </summary>
+    /// <typeparam name="T">The consumer key/value type.</typeparam>
+    /// <param name="deserializer">The deserializer.</param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Deserialize<T>(IAsyncDeserializer<T> deserializer)
+    {
+        return this.Deserialize(deserializer.AsSyncOverAsync());
     }
 
     /// <summary>
