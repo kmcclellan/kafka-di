@@ -152,6 +152,18 @@ public class KafkaClientOptions
     }
 
     /// <summary>
+    /// Configures producers to use the specified partitioner.
+    /// </summary>
+    /// <param name="partitioner">The partitioner delegate.</param>
+    /// <param name="topic">The topic to which this partitioner applies, or <see langword="null"/> for all.</param>
+    /// <returns>The same instance, for chaining.</returns>
+    public KafkaClientOptions Use(PartitionerDelegate partitioner, string? topic = null)
+    {
+        this.setups.Add(new PartitionerSetup(partitioner, topic));
+        return this;
+    }
+
+    /// <summary>
     /// Configures clients to handle Kafka errors.
     /// </summary>
     /// <param name="handler">The handler delegate.</param>
