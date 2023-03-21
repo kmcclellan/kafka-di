@@ -7,6 +7,8 @@ using Confluent.Kafka.SyncOverAsync;
 /// </summary>
 public class KafkaClientOptions
 {
+    static readonly ClientConfig DefaultConfig = new() { BootstrapServers = "localhost:9092" };
+
     readonly List<IClientConfigProvider> config = new();
     readonly List<IClientBuilderSetup> setups = new();
 
@@ -23,6 +25,13 @@ public class KafkaClientOptions
     {
         this.config.Add(new StaticConfig(this.producerConfig, this.consumerConfig, this.adminClientConfig));
         this.setups.Add(new HandlerSetup(this.handlers));
+
+        foreach (var kvp in DefaultConfig)
+        {
+            this.producerConfig.Add(kvp.Key, kvp.Value);
+            this.consumerConfig.Add(kvp.Key, kvp.Value);
+            this.adminClientConfig.Add(kvp.Key, kvp.Value);
+        }
     }
 
     /// <summary>
