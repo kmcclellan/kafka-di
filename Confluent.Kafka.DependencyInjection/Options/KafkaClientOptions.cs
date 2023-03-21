@@ -14,12 +14,15 @@ public class KafkaClientOptions
     readonly Dictionary<string, string> consumerConfig = new();
     readonly Dictionary<string, string> adminClientConfig = new();
 
+    readonly ClientHandlers handlers = new();
+
     /// <summary>
     /// Initializes the options.
     /// </summary>
     public KafkaClientOptions()
     {
         this.config.Add(new StaticConfig(this.producerConfig, this.consumerConfig, this.adminClientConfig));
+        this.setups.Add(new HandlerSetup(this.handlers));
     }
 
     /// <summary>
@@ -146,6 +149,63 @@ public class KafkaClientOptions
     public KafkaClientOptions Deserialize<T>(IAsyncDeserializer<T> deserializer)
     {
         return this.Deserialize(deserializer.AsSyncOverAsync());
+    }
+
+    /// <summary>
+    /// Configures clients to handle Kafka errors.
+    /// </summary>
+    /// <param name="handler">The handler delegate.</param>
+    public KafkaClientOptions OnError(Action<IClient, Error> handler)
+    {
+        this.handlers.ErrorHandler += handler;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures clients to handle Kafka statistics.
+    /// </summary>
+    /// <remarks>Statistics are JSON-serialized and described in <see href="https://github.com/confluentinc/librdkafka/blob/master/STATISTICS.md">librdkafka documentation</see>.</remarks>
+    /// <param name="handler">The handler delegate.</param>
+    public KafkaClientOptions OnStatistics(Action<IClient, string> handler)
+    {
+        this.handlers.StatisticsHandler += handler;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures clients to handle periodic Kafka authentication.
+    /// </summary>
+    /// <remarks>
+    /// For SASL/OAUTHBEARER authentication, handler is passed value of <c>sasl.oauthbearer.config</c> and should invoke <see cref="ClientExtensions.OAuthBearerSetToken(IClient, string, long, string, IDictionary{string, string})"/> or <see cref="ClientExtensions.OAuthBearerSetTokenFailure(IClient, string)"/>.
+    /// </remarks>
+    /// <param name="handler">The handler delegate.</param>
+    public KafkaClientOptions OnAuthenticate(Action<IClient, string> handler)
+    {
+        this.handlers.AuthenticateHandler += handler;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures consumers to handle and/or override offsets assigned, revoked, or lost as part of a consumer group rebalance.
+    /// </summary>
+    /// <remarks>
+    /// The consumer will continue using the returned offsets (none to accept revocation/loss).
+    /// </remarks>
+    /// <param name="handler">The handler delegate.</param>
+    public KafkaClientOptions OnRebalance(Func<IClient, RebalancedOffsets, IEnumerable<TopicPartitionOffset>> handler)
+    {
+        this.handlers.RebalanceHandler += handler;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures consumers handle offsets and/or errors from automatic consumer commits (<c>enable.auto.commit</c>).
+    /// </summary>
+    /// <param name="handler">The handler delegate.</param>
+    public KafkaClientOptions OnCommit(Action<IClient, CommittedOffsets> handler)
+    {
+        this.handlers.CommitHandler += handler;
+        return this;
     }
 
     /// <summary>
