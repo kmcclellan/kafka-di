@@ -43,6 +43,9 @@ public static class KafkaServiceCollectionExtensions
         services.TryAddSingleton(typeof(IConsumer<,>), typeof(ScopedConsumer<,>));
         services.TryAddSingleton<IAdminClient, ScopedAdminClient>();
 
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<KafkaClientOptions>, ConfigureClientLogging>());
+
         return services.AddOptions<KafkaClientOptions>();
     }
 }
