@@ -24,3 +24,9 @@ using System.Diagnostics.CodeAnalysis;
     "CA1812:Avoid uninstantiated internal classes",
     Scope = "type",
     Target = "~T:Confluent.Kafka.DependencyInjection.ConfigureClientLogging")]
+
+[assembly: SuppressMessage(
+    "Performance",
+    "CA1812:Avoid uninstantiated internal classes",
+    Scope = "type",
+    Target = "~T:Confluent.Kafka.DependencyInjection.ConfigureClientProperties")]
