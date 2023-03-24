@@ -58,9 +58,10 @@ class ConfigureClientLogging : ConfigureNamedOptions<KafkaClientOptions>
                 else
                 {
                     LogKafka(client, "Kafka partitions assigned", PartitionsAssigned, offsets: rebalance.Offsets);
+                    return rebalance.Offsets;
                 }
 
-                return rebalance.Offsets;
+                return Enumerable.Empty<TopicPartitionOffset>();
             });
 
         options.OnCommit(
