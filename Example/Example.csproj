@@ -11,4 +11,14 @@
     <ProjectReference Include="..\Confluent.Kafka.DependencyInjection\Confluent.Kafka.DependencyInjection.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Confluent.SchemaRegistry.Serdes.Json" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
