@@ -7,9 +7,9 @@ readonly struct ClientLogValues : IReadOnlyList<KeyValuePair<string, object?>>
 {
     readonly string message;
     readonly string client;
-    readonly TopicPartitionOffset[]? offsets;
+    readonly IEnumerable<TopicPartitionOffset>? offsets;
 
-    public ClientLogValues(string message, string client, TopicPartitionOffset[]? offsets)
+    public ClientLogValues(string message, string client, IEnumerable<TopicPartitionOffset>? offsets)
     {
         this.message = message;
         this.client = client;

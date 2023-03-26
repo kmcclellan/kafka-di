@@ -102,7 +102,7 @@ class ConfigureClientLogging : ConfigureNamedOptions<KafkaClientOptions>
             logger.Log(
                 error != null ? error.IsFatal ? LogLevel.Critical : LogLevel.Error : LogLevel.Information,
                 eventId,
-                new ClientLogValues(message, client.Name, offsets?.ToArray()),
+                new ClientLogValues(message, client.Name, offsets),
                 error != null ? new KafkaException(error) : null,
                 (x, y) => x.ToString());
         }
