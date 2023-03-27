@@ -46,6 +46,9 @@ public static class KafkaServiceCollectionExtensions
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IConfigureOptions<KafkaClientOptions>, ConfigureClientLogging>());
 
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IConfigureOptions<KafkaClientOptions>, ConfigureClientProperties>());
+
         return services.AddOptions<KafkaClientOptions>();
     }
 }
