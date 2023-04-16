@@ -22,6 +22,11 @@ sealed class ScopedAdminClient : IAdminClient
         return this.inner.AddBrokers(brokers);
     }
 
+    public void SetSaslCredentials(string username, string password)
+    {
+        this.inner.SetSaslCredentials(username, password);
+    }
+
     public Metadata GetMetadata(TimeSpan timeout)
     {
         return this.inner.GetMetadata(timeout);

@@ -20,6 +20,11 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         return this.inner.AddBrokers(brokers);
     }
 
+    public void SetSaslCredentials(string username, string password)
+    {
+        this.inner.SetSaslCredentials(username, password);
+    }
+
     public void Produce(
         string topic,
         Message<TKey, TValue> message,

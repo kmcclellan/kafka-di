@@ -30,6 +30,11 @@ sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
         return this.inner.AddBrokers(brokers);
     }
 
+    public void SetSaslCredentials(string username, string password)
+    {
+        this.inner.SetSaslCredentials(username, password);
+    }
+
     public void Subscribe(string topic)
     {
         this.inner.Subscribe(topic);
@@ -170,6 +175,11 @@ sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
         TimeSpan timeout)
     {
         return this.inner.OffsetsForTimes(timestampsToSearch, timeout);
+    }
+
+    public TopicPartitionOffset PositionTopicPartitionOffset(TopicPartition partition)
+    {
+        return this.inner.PositionTopicPartitionOffset(partition);
     }
 
     public void Close()
