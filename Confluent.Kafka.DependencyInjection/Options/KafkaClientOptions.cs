@@ -4,6 +4,7 @@ using Confluent.Kafka.DependencyInjection.Statistics;
 using Confluent.Kafka.SyncOverAsync;
 
 using System.Collections.Concurrent;
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 
 /// <summary>
@@ -39,6 +40,9 @@ public class KafkaClientOptions
             this.adminClientConfig.Add(kvp.Key, kvp.Value);
         }
     }
+
+    internal static Meter Metrics { get; }
+        = new(typeof(KafkaClientOptions).FullName!, typeof(KafkaClientOptions).Assembly.GetName().Version?.ToString());
 
     /// <summary>
     /// Configures client properties using a config provider.
