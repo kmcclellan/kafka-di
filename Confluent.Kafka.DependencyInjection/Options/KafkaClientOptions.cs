@@ -1,6 +1,10 @@
 namespace Confluent.Kafka.Options;
 
+using Confluent.Kafka.DependencyInjection.Statistics;
 using Confluent.Kafka.SyncOverAsync;
+
+using System.Collections.Concurrent;
+using System.Text.Json;
 
 /// <summary>
 /// Options for Kafka clients (producers, consumers, etc.).
@@ -17,6 +21,8 @@ public class KafkaClientOptions
     readonly Dictionary<string, string> adminClientConfig = new();
 
     readonly ClientHandlers handlers = new();
+
+    ConcurrentDictionary<IClient, KafkaStatistics>? clientStatistics;
 
     /// <summary>
     /// Initializes the options.
@@ -305,6 +311,34 @@ public class KafkaClientOptions
         }
 
         return builder.Build();
+    }
+
+    /// <summary>
+    /// Configures clients to deserialize and store statistics.
+    /// </summary>
+    /// <remarks>
+    /// Statistics are updated according to <c>statistics.interval.ms</c>.
+    /// </remarks>
+    /// <returns>A global dictionary in which clients will store their statistics.</returns>
+    public IReadOnlyDictionary<IClient, KafkaStatistics> CaptureStatistics()
+    {
+        if (this.clientStatistics == null)
+        {
+            this.clientStatistics = new();
+
+            this.handlers.StatisticsHandler +=
+                (client, json) =>
+                {
+                    var deserialized = JsonSerializer.Deserialize<KafkaStatistics>(json);
+
+                    if (deserialized != null)
+                    {
+                        this.clientStatistics[client] = deserialized;
+                    }
+                };
+        }
+
+        return this.clientStatistics;
     }
 
     IEnumerable<KeyValuePair<string, string>> GetProperties(
