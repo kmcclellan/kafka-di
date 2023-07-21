@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.SchemaRegistry.Serdes.Json" Version="*" />
+    <PackageReference Include="Confluent.SchemaRegistry.Serdes.Json" Version="2.1.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="*" />
   </ItemGroup>
