@@ -27,6 +27,20 @@ sealed class ScopedAdminClient : IAdminClient
         this.inner.SetSaslCredentials(username, password);
     }
 
+    public Task<DescribeUserScramCredentialsResult> DescribeUserScramCredentialsAsync(
+        IEnumerable<string> users,
+        DescribeUserScramCredentialsOptions? options = null)
+    {
+        return this.inner.DescribeUserScramCredentialsAsync(users, options);
+    }
+
+    public Task AlterUserScramCredentialsAsync(
+        IEnumerable<UserScramCredentialAlteration> alterations,
+        AlterUserScramCredentialsOptions? options = null)
+    {
+        return this.inner.AlterUserScramCredentialsAsync(alterations, options);
+    }
+
     public Metadata GetMetadata(TimeSpan timeout)
     {
         return this.inner.GetMetadata(timeout);
@@ -122,6 +136,13 @@ sealed class ScopedAdminClient : IAdminClient
         AlterConfigsOptions? options = null)
     {
         return this.inner.AlterConfigsAsync(configs, options);
+    }
+
+    public Task<List<IncrementalAlterConfigsResult>> IncrementalAlterConfigsAsync(
+        Dictionary<ConfigResource, List<ConfigEntry>> configs,
+        IncrementalAlterConfigsOptions? options = null)
+    {
+        return this.inner.IncrementalAlterConfigsAsync(configs, options);
     }
 
     public Task<DescribeAclsResult> DescribeAclsAsync(
