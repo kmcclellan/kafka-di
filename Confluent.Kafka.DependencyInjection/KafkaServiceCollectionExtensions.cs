@@ -1,10 +1,12 @@
 namespace Confluent.Kafka;
 
 using Confluent.Kafka.DependencyInjection;
+using Confluent.Kafka.Hosting;
 using Confluent.Kafka.Options;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 using MSOptions = Microsoft.Extensions.Options.Options;
@@ -48,6 +50,8 @@ public static class KafkaServiceCollectionExtensions
 
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IConfigureOptions<KafkaClientOptions>, ConfigureClientProperties>());
+
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, HostedConsumerService>());
 
         return services.AddOptions<KafkaClientOptions>();
     }

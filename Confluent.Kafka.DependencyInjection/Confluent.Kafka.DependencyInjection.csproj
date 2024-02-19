@@ -37,6 +37,7 @@
     <PackageReference Include="Confluent.Kafka" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="*" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="*" PrivateAssets="All" />
