@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 /// <summary>
 /// Extensions of <see cref="IConsumer{TKey, TValue}"/> for processing messages/events in parallel.
@@ -60,12 +61,7 @@ public static class ParallelConsumerExtensions
 
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var exceptions = new ConcurrentBag<Exception>();
-
-#if NET6_0_OR_GREATER
-        var completion = new TaskCompletionSource();
-#else
         var completion = new TaskCompletionSource<byte>();
-#endif
 
         var totalCount = 0;
         var next = default(ConsumeResult<TKey, TValue>);
@@ -75,6 +71,12 @@ public static class ParallelConsumerExtensions
 
         ConsumeLoop();
         await completion.Task.ConfigureAwait(false);
+
+        Debug.Assert(!exceptions.IsEmpty || cancellationToken.IsCancellationRequested, "Must be cancelled or faulted.");
+
+        throw exceptions.IsEmpty
+            ? new OperationCanceledException(cancellationToken)
+            : new AggregateException(exceptions);
 
         void ConsumeLoop(bool blocking = false)
         {
@@ -94,7 +96,7 @@ public static class ParallelConsumerExtensions
 
                     if (buffered is null)
                     {
-                        new Thread(consumeSlow).Start();
+                        new Thread(consumeSlow!).Start();
                         return;
                     }
 
@@ -117,7 +119,7 @@ public static class ParallelConsumerExtensions
 
                 if (Volatile.Read(ref totalCount) is 0)
                 {
-                    Complete();
+                    completion.SetResult(default);
                 }
             }
         }
@@ -193,23 +195,7 @@ public static class ParallelConsumerExtensions
             }
             else if (cancellation.IsCancellationRequested && Volatile.Read(ref next) is null && totalCount is 0)
             {
-                Complete();
-            }
-        }
-
-        void Complete()
-        {
-            if (exceptions.IsEmpty)
-            {
-#if NET6_0_OR_GREATER
-                completion.SetCanceled(cancellationToken);
-#else
-                completion.SetCanceled();
-#endif
-            }
-            else
-            {
-                completion.SetException(exceptions);
+                completion.SetResult(default);
             }
         }
     }
