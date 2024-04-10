@@ -41,11 +41,9 @@ public abstract class ConsumerService<TKey, TValue> : BackgroundService
     /// <returns>A task for the long-running consume operation.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (ConsumeOptions.MaxDegreeOfParallelism == 0)
+        if (ConsumeOptions is not { MaxDegreeOfParallelism: > 0, Topics.Count: > 0 })
         {
-            logger?.LogInformation(
-                $"Consumer service is disabled ({nameof(HostedConsumeOptions.MaxDegreeOfParallelism)}: 0).");
-
+            logger?.LogInformation("Consumer service is disabled");
             return;
         }
 
