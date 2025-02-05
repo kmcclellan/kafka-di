@@ -21,7 +21,11 @@ public static class KafkaServiceCollectionExtensions
     /// <returns>A builder for client options.</returns>
     public static OptionsBuilder<KafkaClientOptions> AddKafkaClient(this IServiceCollection services)
     {
+#if NET7_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(services, nameof(services));
+#else
         if (services == null) throw new ArgumentNullException(nameof(services));
+#endif
 
         services.TryAddSingleton<ClientScopeFactory>(
             provider =>

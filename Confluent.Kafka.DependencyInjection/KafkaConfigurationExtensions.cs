@@ -19,8 +19,13 @@ public static class KafkaConfigurationExtensions
     /// <param name="options">The Kafka client options.</param>
     public static void Bind(this IConfiguration config, KafkaClientOptions options)
     {
+#if NET7_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(config, nameof(config));
+        ArgumentNullException.ThrowIfNull(options, nameof(options));
+#else
         if (config == null) throw new ArgumentNullException(nameof(config));
         if (options == null) throw new ArgumentNullException(nameof(options));
+#endif
 
         options.Configure(new StaticConfig(Get("Producer"), Get("Consumer"), Get("Admin")));
 

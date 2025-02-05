@@ -1,61 +1,51 @@
 ﻿namespace Confluent.Kafka.Options;
 
-class SerdesSetup<T> : IClientBuilderSetup
+sealed class SerdesSetup<T>(
+    ISerializer<T>? serializer = null,
+    IAsyncSerializer<T>? asyncSerializer = null,
+    IDeserializer<T>? deserializer = null) :
+    IClientBuilderSetup
 {
-    readonly ISerializer<T>? serializer;
-    readonly IAsyncSerializer<T>? asyncSerializer;
-    readonly IDeserializer<T>? deserializer;
-
-    public SerdesSetup(
-        ISerializer<T>? serializer = null,
-        IAsyncSerializer<T>? asyncSerializer = null,
-        IDeserializer<T>? deserializer = null)
+    public void Apply<TKey, TValue>(ProducerBuilder<TKey, TValue> builder)
     {
-        this.serializer = serializer;
-        this.asyncSerializer = asyncSerializer;
-        this.deserializer = deserializer;
-    }
-
-    public virtual void Apply<TKey, TValue>(ProducerBuilder<TKey, TValue> builder)
-    {
-        if (this.serializer != null)
+        if (serializer != null)
         {
             if (builder is ProducerBuilder<T, TValue> keyBuilder)
             {
-                keyBuilder.SetKeySerializer(this.serializer);
+                keyBuilder.SetKeySerializer(serializer);
             }
 
             if (builder is ProducerBuilder<TKey, T> valueBuilder)
             {
-                valueBuilder.SetValueSerializer(this.serializer);
+                valueBuilder.SetValueSerializer(serializer);
             }
         }
-        else if (this.asyncSerializer != null)
+        else if (asyncSerializer != null)
         {
             if (builder is ProducerBuilder<T, TValue> keyBuilder)
             {
-                keyBuilder.SetKeySerializer(this.asyncSerializer);
+                keyBuilder.SetKeySerializer(asyncSerializer);
             }
 
             if (builder is ProducerBuilder<TKey, T> valueBuilder)
             {
-                valueBuilder.SetValueSerializer(this.asyncSerializer);
+                valueBuilder.SetValueSerializer(asyncSerializer);
             }
         }
     }
 
-    public virtual void Apply<TKey, TValue>(ConsumerBuilder<TKey, TValue> builder)
+    public void Apply<TKey, TValue>(ConsumerBuilder<TKey, TValue> builder)
     {
-        if (this.deserializer != null)
+        if (deserializer != null)
         {
             if (builder is ConsumerBuilder<T, TValue> keyBuilder)
             {
-                keyBuilder.SetKeyDeserializer(this.deserializer);
+                keyBuilder.SetKeyDeserializer(deserializer);
             }
 
             if (builder is ConsumerBuilder<TKey, T> valueBuilder)
             {
-                valueBuilder.SetValueDeserializer(this.deserializer);
+                valueBuilder.SetValueDeserializer(deserializer);
             }
         }
     }

@@ -9,12 +9,12 @@ public class KafkaClientOptions
 {
     static readonly ClientConfig DefaultConfig = new() { BootstrapServers = "localhost:9092" };
 
-    readonly List<IClientConfigProvider> config = new();
-    readonly List<IClientBuilderSetup> setups = new();
+    readonly List<IClientConfigProvider> config = [];
+    readonly List<IClientBuilderSetup> setups = [];
 
-    readonly Dictionary<string, string> producerConfig = new();
-    readonly Dictionary<string, string> consumerConfig = new();
-    readonly Dictionary<string, string> adminClientConfig = new();
+    readonly Dictionary<string, string> producerConfig = [];
+    readonly Dictionary<string, string> consumerConfig = [];
+    readonly Dictionary<string, string> adminClientConfig = [];
 
     readonly ClientHandlers handlers = new();
 

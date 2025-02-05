@@ -3,35 +3,32 @@
 /// <summary>
 /// The state of partitions/offsets during a consumer group rebalance.
 /// </summary>
-public readonly struct RebalancedOffsets : IEquatable<RebalancedOffsets>
+/// <remarks>
+/// Initializes the rebalanced offsets.
+/// </remarks>
+/// <param name="offsets">The affected offsets</param>
+/// <param name="revoked">Whether the partitions are being revoked.</param>
+/// <param name="lost">Wehther the partitions have been lost.</param>
+public readonly struct RebalancedOffsets(
+    IReadOnlyList<TopicPartitionOffset> offsets,
+    bool revoked = false,
+    bool lost = false) :
+    IEquatable<RebalancedOffsets>
 {
-    /// <summary>
-    /// Initializes the rebalanced offsets.
-    /// </summary>
-    /// <param name="offsets">The affected offsets</param>
-    /// <param name="revoked">Whether the partitions are being revoked.</param>
-    /// <param name="lost">Wehther the partitions have been lost.</param>
-    public RebalancedOffsets(IReadOnlyList<TopicPartitionOffset> offsets, bool revoked = false, bool lost = false)
-    {
-        this.Offsets = offsets;
-        this.Revoked = revoked;
-        this.Lost = lost;
-    }
-
     /// <summary>
     /// Gets the affected topics, partitions, and offsets.
     /// </summary>
-    public IReadOnlyList<TopicPartitionOffset> Offsets { get; }
+    public IReadOnlyList<TopicPartitionOffset> Offsets { get; } = offsets;
 
     /// <summary>
     /// Gets whether the partitions are being revoked.
     /// </summary>
-    public bool Revoked { get; }
+    public bool Revoked { get; } = revoked;
 
     /// <summary>
     /// Gets whether the partitions have been lost.
     /// </summary>
-    public bool Lost { get; }
+    public bool Lost { get; } = lost;
 
     /// <inheritdoc/>
     public override bool Equals(object? obj)

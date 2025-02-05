@@ -3,20 +3,13 @@
 using System.Collections;
 using System.Text;
 
-readonly struct ClientLogValues : IReadOnlyList<KeyValuePair<string, object?>>
+readonly struct ClientLogValues(
+    string message,
+    string client,
+    IEnumerable<TopicPartitionOffset>? offsets) :
+    IReadOnlyList<KeyValuePair<string, object?>>
 {
-    readonly string message;
-    readonly string client;
-    readonly IEnumerable<TopicPartitionOffset>? offsets;
-
-    public ClientLogValues(string message, string client, IEnumerable<TopicPartitionOffset>? offsets)
-    {
-        this.message = message;
-        this.client = client;
-        this.offsets = offsets;
-    }
-
-    public int Count => this.offsets == null ? 1 : 2;
+    public int Count => offsets == null ? 1 : 2;
 
     public KeyValuePair<string, object?> this[int index]
     {
@@ -24,8 +17,8 @@ readonly struct ClientLogValues : IReadOnlyList<KeyValuePair<string, object?>>
         {
             return index switch
             {
-                0 => new("KafkaClient", this.client),
-                1 => new("KafkaOffsets", this.offsets),
+                0 => new("KafkaClient", client),
+                1 => new("KafkaOffsets", offsets),
                 _ => throw new ArgumentOutOfRangeException(nameof(index)),
             };
         }
@@ -48,16 +41,16 @@ readonly struct ClientLogValues : IReadOnlyList<KeyValuePair<string, object?>>
     {
         var builder = new StringBuilder()
             .Append('[')
-            .Append(this.client)
+            .Append(client)
             .Append(']')
             .Append(' ')
-            .Append(this.message);
+            .Append(message);
 
-        if (this.offsets != null)
+        if (offsets != null)
         {
             builder.AppendLine();
 
-            foreach (var tpo in this.offsets)
+            foreach (var tpo in offsets)
             {
                 builder.Append(' ', 2);
                 builder.AppendLine(tpo.ToString());

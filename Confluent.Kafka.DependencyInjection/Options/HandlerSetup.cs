@@ -1,14 +1,7 @@
 ﻿namespace Confluent.Kafka.Options;
 
-sealed class HandlerSetup : IClientBuilderSetup
+sealed class HandlerSetup(ClientHandlers handlers) : IClientBuilderSetup
 {
-    readonly ClientHandlers handlers;
-
-    public HandlerSetup(ClientHandlers handlers)
-    {
-        this.handlers = handlers;
-    }
-
     public void Apply<TKey, TValue>(ProducerBuilder<TKey, TValue> builder)
     {
         this.ApplyHandlers(
@@ -24,22 +17,22 @@ sealed class HandlerSetup : IClientBuilderSetup
             builder.SetStatisticsHandler,
             builder.SetOAuthBearerTokenRefreshHandler);
 
-        if (this.handlers.RebalanceHandler != null)
+        if (handlers.RebalanceHandler != null)
         {
             builder.SetPartitionsAssignedHandler(
                 (client, partitions) =>
                 {
                     var offsets = partitions.Select(x => new TopicPartitionOffset(x, Offset.Unset));
-                    return this.handlers.RebalanceHandler(client, new(offsets.ToList()));
+                    return handlers.RebalanceHandler(client, new(offsets.ToList()));
                 });
 
-            builder.SetPartitionsRevokedHandler((x, y) => this.handlers.RebalanceHandler(x, new(y, revoked: true)));
-            builder.SetPartitionsLostHandler((x, y) => this.handlers.RebalanceHandler(x, new(y, lost: true)));
+            builder.SetPartitionsRevokedHandler((x, y) => handlers.RebalanceHandler(x, new(y, revoked: true)));
+            builder.SetPartitionsLostHandler((x, y) => handlers.RebalanceHandler(x, new(y, lost: true)));
         }
 
-        if (this.handlers.CommitHandler != null)
+        if (handlers.CommitHandler != null)
         {
-            builder.SetOffsetsCommittedHandler(this.handlers.CommitHandler);
+            builder.SetOffsetsCommittedHandler(handlers.CommitHandler);
         }
     }
 
@@ -56,19 +49,19 @@ sealed class HandlerSetup : IClientBuilderSetup
         Func<Action<IClient, string>, TBuilder> configureStats,
         Func<Action<IClient, string>, TBuilder> configureAuth)
     {
-        if (this.handlers.ErrorHandler != null)
+        if (handlers.ErrorHandler != null)
         {
-            configureErrors(this.handlers.ErrorHandler);
+            configureErrors(handlers.ErrorHandler);
         }
 
-        if (this.handlers.StatisticsHandler != null)
+        if (handlers.StatisticsHandler != null)
         {
-            configureStats(this.handlers.StatisticsHandler);
+            configureStats(handlers.StatisticsHandler);
         }
 
-        if (this.handlers.AuthenticateHandler != null)
+        if (handlers.AuthenticateHandler != null)
         {
-            configureAuth(this.handlers.AuthenticateHandler);
+            configureAuth(handlers.AuthenticateHandler);
         }
     }
 }

@@ -7,17 +7,13 @@ using Microsoft.Extensions.Options;
 
 using System.Collections.Concurrent;
 
-class ConfigureClientLogging : ConfigureNamedOptions<KafkaClientOptions>
+sealed class ConfigureClientLogging(ILoggerFactory? factory = null) :
+    ConfigureNamedOptions<KafkaClientOptions>(null, factory != null ? x => Configure(factory, x) : null)
 {
     static readonly EventId PartitionsAssigned = new(10, nameof(PartitionsAssigned)),
         PartitionsRevoked = new(11, nameof(PartitionsRevoked)),
         PartitionsLost = new(12, nameof(PartitionsLost)),
         OffsetsCommitted = new(20, nameof(OffsetsCommitted));
-
-    public ConfigureClientLogging(ILoggerFactory? factory = null)
-        : base(null, factory != null ? x => Configure(factory, x) : null)
-    {
-    }
 
     public static void Configure(ILoggerFactory factory, KafkaClientOptions options)
     {

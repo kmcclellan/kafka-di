@@ -5,13 +5,9 @@ using Confluent.Kafka.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
-class ConfigureClientProperties : ConfigureOptions<KafkaClientOptions>
+sealed class ConfigureClientProperties(IConfiguration? config = null) :
+    ConfigureOptions<KafkaClientOptions>(config != null ? x => Configure(config, x) : null)
 {
-    public ConfigureClientProperties(IConfiguration? config = null)
-        : base(config != null ? x => Configure(config, x) : null)
-    {
-    }
-
     public static void Configure(IConfiguration config, KafkaClientOptions options)
     {
         config.GetSection("Kafka").Bind(options);

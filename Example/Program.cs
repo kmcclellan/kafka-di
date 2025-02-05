@@ -40,21 +40,13 @@ foreach (var client in new IClient[] { test.Producer, test.Consumer, test.AdminC
     Console.WriteLine("Resolved client '{0}'", client.Name);
 }
 
-class MyService
+class MyService(IProducer<string, byte[]> producer, IConsumer<Ignore, MyType> consumer, IAdminClient adminClient)
 {
-    public MyService(IProducer<string, byte[]> producer, IConsumer<Ignore, MyType> consumer, IAdminClient adminClient)
-    {
-        // Clients are singletons managed by the container.
-        this.Producer = producer;
-        this.Consumer = consumer;
-        this.AdminClient = adminClient;
-    }
+    public IProducer<string, byte[]> Producer { get; } = producer;
 
-    public IProducer<string, byte[]> Producer { get; }
+    public IConsumer<Ignore, MyType> Consumer { get; } = consumer;
 
-    public IConsumer<Ignore, MyType> Consumer { get; }
-
-    public IAdminClient AdminClient { get; }
+    public IAdminClient AdminClient { get; } = adminClient;
 }
 
 class MyType

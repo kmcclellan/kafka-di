@@ -1,25 +1,16 @@
 ﻿namespace Confluent.Kafka.Options;
 
-sealed class PartitionerSetup : IClientBuilderSetup
+sealed class PartitionerSetup(PartitionerDelegate partitioner, string? topic) : IClientBuilderSetup
 {
-    readonly PartitionerDelegate partitioner;
-    readonly string? topic;
-
-    public PartitionerSetup(PartitionerDelegate partitioner, string? topic)
-    {
-        this.partitioner = partitioner;
-        this.topic = topic;
-    }
-
     public void Apply<TKey, TValue>(ProducerBuilder<TKey, TValue> builder)
     {
-        if (this.topic != null)
+        if (topic != null)
         {
-            builder.SetPartitioner(this.topic, this.partitioner);
+            builder.SetPartitioner(topic, partitioner);
         }
         else
         {
-            builder.SetDefaultPartitioner(this.partitioner);
+            builder.SetDefaultPartitioner(partitioner);
         }
     }
 
