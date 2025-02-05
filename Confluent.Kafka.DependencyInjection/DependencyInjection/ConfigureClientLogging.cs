@@ -70,11 +70,15 @@ sealed class ConfigureClientLogging(ILoggerFactory? factory = null) :
                     {
                         if (group.Key.IsError)
                         {
-                            LogKafka(client, "Kafka commit error", error: group.Key);
+                            LogKafka(client, "Kafka commit error", error: group.Key, offsets: group);
                         }
                         else
                         {
-                            LogKafka(client, "Kafka offset commit", OffsetsCommitted, offsets: group);
+                            LogKafka(
+                                client,
+                                "Kafka offset commit",
+                                OffsetsCommitted,
+                                offsets: group.Where(x => x.Offset != Offset.Unset));
                         }
                     }
                 }
