@@ -1,28 +1,52 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
+using Confluent.Kafka.Options;
+
+using Microsoft.Extensions.DependencyInjection;
+
 sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
 {
-    readonly IDisposable scope;
-    readonly IProducer<TKey, TValue> inner;
+    readonly IServiceScope scope;
+    readonly IProducer<TKey, TValue> producer;
 
-    public ScopedProducer(ClientScopeFactory initOptions)
+    public ScopedProducer(IServiceScopeFactory scopes)
     {
-        this.scope = initOptions(out var options);
-        this.inner = options.CreateProducer<TKey, TValue>();
+        scope = scopes.CreateScope();
+
+        var config = new Dictionary<string, string>();
+
+        foreach (var provider in scope.ServiceProvider.GetServices<IClientConfigProvider>())
+        {
+            var iterator = provider.ForProducer<TKey, TValue>();
+
+            while (iterator.MoveNext())
+            {
+                config[iterator.Current.Key] = iterator.Current.Value;
+            }
+        }
+
+        var builder = new ProducerBuilder<TKey, TValue>(config);
+
+        foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
+        {
+            setup.Apply(builder);
+        }
+
+        producer = builder.Build();
     }
 
-    public Handle Handle => this.inner.Handle;
+    public Handle Handle => producer.Handle;
 
-    public string Name => this.inner.Name;
+    public string Name => producer.Name;
 
     public int AddBrokers(string brokers)
     {
-        return this.inner.AddBrokers(brokers);
+        return producer.AddBrokers(brokers);
     }
 
     public void SetSaslCredentials(string username, string password)
     {
-        this.inner.SetSaslCredentials(username, password);
+        producer.SetSaslCredentials(username, password);
     }
 
     public void Produce(
@@ -30,7 +54,7 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
     {
-        this.inner.Produce(topic, message, deliveryHandler);
+        producer.Produce(topic, message, deliveryHandler);
     }
 
     public void Produce(
@@ -38,7 +62,7 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
     {
-        this.inner.Produce(topicPartition, message, deliveryHandler);
+        producer.Produce(topicPartition, message, deliveryHandler);
     }
 
     public Task<DeliveryResult<TKey, TValue>> ProduceAsync(
@@ -46,7 +70,7 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         CancellationToken cancellationToken = default)
     {
-        return this.inner.ProduceAsync(topic, message, cancellationToken);
+        return producer.ProduceAsync(topic, message, cancellationToken);
     }
 
     public Task<DeliveryResult<TKey, TValue>> ProduceAsync(
@@ -54,37 +78,37 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         CancellationToken cancellationToken = default)
     {
-        return this.inner.ProduceAsync(topicPartition, message, cancellationToken);
+        return producer.ProduceAsync(topicPartition, message, cancellationToken);
     }
 
     public void BeginTransaction()
     {
-        this.inner.BeginTransaction();
+        producer.BeginTransaction();
     }
 
     public void CommitTransaction()
     {
-        this.inner.CommitTransaction();
+        producer.CommitTransaction();
     }
 
     public void CommitTransaction(TimeSpan timeout)
     {
-        this.inner.CommitTransaction(timeout);
+        producer.CommitTransaction(timeout);
     }
 
     public void AbortTransaction()
     {
-        this.inner.AbortTransaction();
+        producer.AbortTransaction();
     }
 
     public void AbortTransaction(TimeSpan timeout)
     {
-        this.inner.AbortTransaction(timeout);
+        producer.AbortTransaction(timeout);
     }
 
     public void InitTransactions(TimeSpan timeout)
     {
-        this.inner.InitTransactions(timeout);
+        producer.InitTransactions(timeout);
     }
 
     public void SendOffsetsToTransaction(
@@ -92,27 +116,27 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         IConsumerGroupMetadata groupMetadata,
         TimeSpan timeout)
     {
-        this.inner.SendOffsetsToTransaction(offsets, groupMetadata, timeout);
+        producer.SendOffsetsToTransaction(offsets, groupMetadata, timeout);
     }
 
     public int Poll(TimeSpan timeout)
     {
-        return this.inner.Poll(timeout);
+        return producer.Poll(timeout);
     }
 
     public void Flush(CancellationToken cancellationToken = default)
     {
-        this.inner.Flush(cancellationToken);
+        producer.Flush(cancellationToken);
     }
 
     public int Flush(TimeSpan timeout)
     {
-        return this.inner.Flush(timeout);
+        return producer.Flush(timeout);
     }
 
     public void Dispose()
     {
-        this.inner.Dispose();
-        this.scope.Dispose();
+        producer.Dispose();
+        scope.Dispose();
     }
 }

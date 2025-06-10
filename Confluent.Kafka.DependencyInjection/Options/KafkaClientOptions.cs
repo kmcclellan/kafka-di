@@ -34,6 +34,10 @@ public class KafkaClientOptions
         }
     }
 
+    internal IEnumerable<IClientConfigProvider> ConfigProviders => config;
+
+    internal IEnumerable<IClientBuilderSetup> BuilderSetups => setups;
+
     /// <summary>
     /// Configures client properties using a config provider.
     /// </summary>

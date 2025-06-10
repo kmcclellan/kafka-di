@@ -1,119 +1,142 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
 using Confluent.Kafka.Admin;
+using Confluent.Kafka.Options;
+
+using Microsoft.Extensions.DependencyInjection;
 
 sealed class ScopedAdminClient : IAdminClient
 {
-    readonly IDisposable scope;
-    readonly IAdminClient inner;
+    readonly IServiceScope scope;
+    readonly IAdminClient client;
 
-    public ScopedAdminClient(ClientScopeFactory initOptions)
+    public ScopedAdminClient(IServiceScopeFactory scopes)
     {
-        this.scope = initOptions(out var options);
-        this.inner = options.CreateAdminClient();
+        scope = scopes.CreateScope();
+
+        var config = new Dictionary<string, string>();
+
+        foreach (var provider in scope.ServiceProvider.GetServices<IClientConfigProvider>())
+        {
+            var iterator = provider.ForAdminClient();
+
+            while (iterator.MoveNext())
+            {
+                config[iterator.Current.Key] = iterator.Current.Value;
+            }
+        }
+
+        var builder = new AdminClientBuilder(config);
+
+        foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
+        {
+            setup.Apply(builder);
+        }
+
+        client = builder.Build();
     }
 
-    public Handle Handle => this.inner.Handle;
+    public Handle Handle => client.Handle;
 
-    public string Name => this.inner.Name;
+    public string Name => client.Name;
 
     public int AddBrokers(string brokers)
     {
-        return this.inner.AddBrokers(brokers);
+        return client.AddBrokers(brokers);
     }
 
     public void SetSaslCredentials(string username, string password)
     {
-        this.inner.SetSaslCredentials(username, password);
+        client.SetSaslCredentials(username, password);
     }
 
     public Task<DescribeUserScramCredentialsResult> DescribeUserScramCredentialsAsync(
         IEnumerable<string> users,
         DescribeUserScramCredentialsOptions? options = null)
     {
-        return this.inner.DescribeUserScramCredentialsAsync(users, options);
+        return client.DescribeUserScramCredentialsAsync(users, options);
     }
 
     public Task AlterUserScramCredentialsAsync(
         IEnumerable<UserScramCredentialAlteration> alterations,
         AlterUserScramCredentialsOptions? options = null)
     {
-        return this.inner.AlterUserScramCredentialsAsync(alterations, options);
+        return client.AlterUserScramCredentialsAsync(alterations, options);
     }
 
     public Metadata GetMetadata(TimeSpan timeout)
     {
-        return this.inner.GetMetadata(timeout);
+        return client.GetMetadata(timeout);
     }
 
     public Metadata GetMetadata(string topic, TimeSpan timeout)
     {
-        return this.inner.GetMetadata(topic, timeout);
+        return client.GetMetadata(topic, timeout);
     }
 
     public Task CreateTopicsAsync(IEnumerable<TopicSpecification> topics, CreateTopicsOptions? options = null)
     {
-        return this.inner.CreateTopicsAsync(topics, options);
+        return client.CreateTopicsAsync(topics, options);
     }
 
     public Task DeleteTopicsAsync(IEnumerable<string> topics, DeleteTopicsOptions? options = null)
     {
-        return this.inner.DeleteTopicsAsync(topics, options);
+        return client.DeleteTopicsAsync(topics, options);
     }
 
     public Task CreatePartitionsAsync(
         IEnumerable<PartitionsSpecification> partitionsSpecifications,
         CreatePartitionsOptions? options = null)
     {
-        return this.inner.CreatePartitionsAsync(partitionsSpecifications, options);
+        return client.CreatePartitionsAsync(partitionsSpecifications, options);
     }
 
     public Task<List<DeleteRecordsResult>> DeleteRecordsAsync(
         IEnumerable<TopicPartitionOffset> topicPartitionOffsets,
         DeleteRecordsOptions? options = null)
     {
-        return this.inner.DeleteRecordsAsync(topicPartitionOffsets, options);
+        return client.DeleteRecordsAsync(topicPartitionOffsets, options);
     }
 
     public GroupInfo ListGroup(string group, TimeSpan timeout)
     {
-        return this.inner.ListGroup(group, timeout);
+        return client.ListGroup(group, timeout);
     }
 
     public List<GroupInfo> ListGroups(TimeSpan timeout)
     {
-        return this.inner.ListGroups(timeout);
+        return client.ListGroups(timeout);
     }
 
     public Task<ListConsumerGroupsResult> ListConsumerGroupsAsync(ListConsumerGroupsOptions? options = null)
     {
-        return this.inner.ListConsumerGroupsAsync(options);
+        return client.ListConsumerGroupsAsync(options);
     }
 
     public Task<DescribeConsumerGroupsResult> DescribeConsumerGroupsAsync(
         IEnumerable<string> groups,
         DescribeConsumerGroupsOptions? options = null)
     {
-        return this.inner.DescribeConsumerGroupsAsync(groups, options);
+        return client.DescribeConsumerGroupsAsync(groups, options);
     }
 
     public Task DeleteGroupsAsync(IList<string> groups, DeleteGroupsOptions? options = null)
     {
-        return this.inner.DeleteGroupsAsync(groups, options);
+        return client.DeleteGroupsAsync(groups, options);
     }
 
     public Task<List<ListConsumerGroupOffsetsResult>> ListConsumerGroupOffsetsAsync(
         IEnumerable<ConsumerGroupTopicPartitions> groupPartitions,
         ListConsumerGroupOffsetsOptions? options = null)
     {
-        return this.inner.ListConsumerGroupOffsetsAsync(groupPartitions, options);
+        return client.ListConsumerGroupOffsetsAsync(groupPartitions, options);
     }
 
     public Task<List<AlterConsumerGroupOffsetsResult>> AlterConsumerGroupOffsetsAsync(
         IEnumerable<ConsumerGroupTopicPartitionOffsets> groupPartitions,
         AlterConsumerGroupOffsetsOptions? options = null)
     {
-        return this.inner.AlterConsumerGroupOffsetsAsync(groupPartitions, options);
+        return client.AlterConsumerGroupOffsetsAsync(groupPartitions, options);
     }
 
     public Task<DeleteConsumerGroupOffsetsResult> DeleteConsumerGroupOffsetsAsync(
@@ -121,52 +144,52 @@ sealed class ScopedAdminClient : IAdminClient
         IEnumerable<TopicPartition> partitions,
         DeleteConsumerGroupOffsetsOptions? options = null)
     {
-        return this.inner.DeleteConsumerGroupOffsetsAsync(group, partitions, options);
+        return client.DeleteConsumerGroupOffsetsAsync(group, partitions, options);
     }
 
     public Task<List<DescribeConfigsResult>> DescribeConfigsAsync(
         IEnumerable<ConfigResource> resources,
         DescribeConfigsOptions? options = null)
     {
-        return this.inner.DescribeConfigsAsync(resources, options);
+        return client.DescribeConfigsAsync(resources, options);
     }
 
     public Task AlterConfigsAsync(
         Dictionary<ConfigResource, List<ConfigEntry>> configs,
         AlterConfigsOptions? options = null)
     {
-        return this.inner.AlterConfigsAsync(configs, options);
+        return client.AlterConfigsAsync(configs, options);
     }
 
     public Task<List<IncrementalAlterConfigsResult>> IncrementalAlterConfigsAsync(
         Dictionary<ConfigResource, List<ConfigEntry>> configs,
         IncrementalAlterConfigsOptions? options = null)
     {
-        return this.inner.IncrementalAlterConfigsAsync(configs, options);
+        return client.IncrementalAlterConfigsAsync(configs, options);
     }
 
     public Task<DescribeAclsResult> DescribeAclsAsync(
         AclBindingFilter aclBindingFilter,
         DescribeAclsOptions? options = null)
     {
-        return this.inner.DescribeAclsAsync(aclBindingFilter, options);
+        return client.DescribeAclsAsync(aclBindingFilter, options);
     }
 
     public Task CreateAclsAsync(IEnumerable<AclBinding> aclBindings, CreateAclsOptions? options = null)
     {
-        return this.inner.CreateAclsAsync(aclBindings, options);
+        return client.CreateAclsAsync(aclBindings, options);
     }
 
     public Task<List<DeleteAclsResult>> DeleteAclsAsync(
         IEnumerable<AclBindingFilter> aclBindingFilters,
         DeleteAclsOptions? options = null)
     {
-        return this.inner.DeleteAclsAsync(aclBindingFilters, options);
+        return client.DeleteAclsAsync(aclBindingFilters, options);
     }
 
     public void Dispose()
     {
-        this.inner.Dispose();
-        this.scope.Dispose();
+        client.Dispose();
+        scope.Dispose();
     }
 }

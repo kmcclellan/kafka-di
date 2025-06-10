@@ -1,201 +1,225 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
+using Confluent.Kafka.Options;
+
+using Microsoft.Extensions.DependencyInjection;
+
 sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 {
-    readonly IDisposable scope;
-    readonly IConsumer<TKey, TValue> inner;
+    readonly IServiceScope scope;
+    readonly IConsumer<TKey, TValue> consumer;
 
     bool closed;
 
-    public ScopedConsumer(ClientScopeFactory initOptions)
+    public ScopedConsumer(IServiceScopeFactory scopes)
     {
-        this.scope = initOptions(out var options);
-        this.inner = options.CreateConsumer<TKey, TValue>();
+        scope = scopes.CreateScope();
+
+        var config = new Dictionary<string, string>();
+
+        foreach (var provider in scope.ServiceProvider.GetServices<IClientConfigProvider>())
+        {
+            var iterator = provider.ForConsumer<TKey, TValue>();
+
+            while (iterator.MoveNext())
+            {
+                config[iterator.Current.Key] = iterator.Current.Value;
+            }
+        }
+
+        var builder = new ConsumerBuilder<TKey, TValue>(config);
+
+        foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
+        {
+            setup.Apply(builder);
+        }
+
+        consumer = builder.Build();
     }
 
-    public Handle Handle => this.inner.Handle;
+    public Handle Handle => consumer.Handle;
 
-    public string Name => this.inner.Name;
+    public string Name => consumer.Name;
 
-    public List<string> Subscription => this.inner.Subscription;
+    public List<string> Subscription => consumer.Subscription;
 
-    public List<TopicPartition> Assignment => this.inner.Assignment;
+    public List<TopicPartition> Assignment => consumer.Assignment;
 
-    public string MemberId => this.inner.MemberId;
+    public string MemberId => consumer.MemberId;
 
-    public IConsumerGroupMetadata ConsumerGroupMetadata => this.inner.ConsumerGroupMetadata;
+    public IConsumerGroupMetadata ConsumerGroupMetadata => consumer.ConsumerGroupMetadata;
 
     public int AddBrokers(string brokers)
     {
-        return this.inner.AddBrokers(brokers);
+        return consumer.AddBrokers(brokers);
     }
 
     public void SetSaslCredentials(string username, string password)
     {
-        this.inner.SetSaslCredentials(username, password);
+        consumer.SetSaslCredentials(username, password);
     }
 
     public void Subscribe(string topic)
     {
-        this.inner.Subscribe(topic);
+        consumer.Subscribe(topic);
     }
 
     public void Subscribe(IEnumerable<string> topics)
     {
-        this.inner.Subscribe(topics);
+        consumer.Subscribe(topics);
     }
 
     public void Unsubscribe()
     {
-        this.inner.Unsubscribe();
+        consumer.Unsubscribe();
     }
 
     public void Assign(TopicPartition partition)
     {
-        this.inner.Assign(partition);
+        consumer.Assign(partition);
     }
 
     public void Assign(TopicPartitionOffset partition)
     {
-        this.inner.Assign(partition);
+        consumer.Assign(partition);
     }
 
     public void Assign(IEnumerable<TopicPartitionOffset> partitions)
     {
-        this.inner.Assign(partitions);
+        consumer.Assign(partitions);
     }
 
     public void Assign(IEnumerable<TopicPartition> partitions)
     {
-        this.inner.Assign(partitions);
+        consumer.Assign(partitions);
     }
 
     public void IncrementalAssign(IEnumerable<TopicPartitionOffset> partitions)
     {
-        this.inner.IncrementalAssign(partitions);
+        consumer.IncrementalAssign(partitions);
     }
 
     public void IncrementalAssign(IEnumerable<TopicPartition> partitions)
     {
-        this.inner.IncrementalAssign(partitions);
+        consumer.IncrementalAssign(partitions);
     }
 
     public void Unassign()
     {
-        this.inner.Unassign();
+        consumer.Unassign();
     }
 
     public void IncrementalUnassign(IEnumerable<TopicPartition> partitions)
     {
-        this.inner.IncrementalUnassign(partitions);
+        consumer.IncrementalUnassign(partitions);
     }
 
     public void Seek(TopicPartitionOffset tpo)
     {
-        this.inner.Seek(tpo);
+        consumer.Seek(tpo);
     }
 
     public ConsumeResult<TKey, TValue> Consume(int millisecondsTimeout)
     {
-        return this.inner.Consume(millisecondsTimeout);
+        return consumer.Consume(millisecondsTimeout);
     }
 
     public ConsumeResult<TKey, TValue> Consume(CancellationToken cancellationToken = default)
     {
-        return this.inner.Consume(cancellationToken);
+        return consumer.Consume(cancellationToken);
     }
 
     public ConsumeResult<TKey, TValue> Consume(TimeSpan timeout)
     {
-        return this.inner.Consume(timeout);
+        return consumer.Consume(timeout);
     }
 
     public void Pause(IEnumerable<TopicPartition> partitions)
     {
-        this.inner.Pause(partitions);
+        consumer.Pause(partitions);
     }
 
     public void Resume(IEnumerable<TopicPartition> partitions)
     {
-        this.inner.Resume(partitions);
+        consumer.Resume(partitions);
     }
 
     public List<TopicPartitionOffset> Commit()
     {
-        return this.inner.Commit();
+        return consumer.Commit();
     }
 
     public void Commit(ConsumeResult<TKey, TValue> result)
     {
-        this.inner.Commit(result);
+        consumer.Commit(result);
     }
 
     public void Commit(IEnumerable<TopicPartitionOffset> offsets)
     {
-        this.inner.Commit(offsets);
+        consumer.Commit(offsets);
     }
 
     public void StoreOffset(ConsumeResult<TKey, TValue> result)
     {
-        this.inner.StoreOffset(result);
+        consumer.StoreOffset(result);
     }
 
     public void StoreOffset(TopicPartitionOffset offset)
     {
-        this.inner.StoreOffset(offset);
+        consumer.StoreOffset(offset);
     }
 
     public Offset Position(TopicPartition partition)
     {
-        return this.inner.Position(partition);
+        return consumer.Position(partition);
     }
 
     public List<TopicPartitionOffset> Committed(TimeSpan timeout)
     {
-        return this.inner.Committed(timeout);
+        return consumer.Committed(timeout);
     }
 
     public List<TopicPartitionOffset> Committed(IEnumerable<TopicPartition> partitions, TimeSpan timeout)
     {
-        return this.inner.Committed(partitions, timeout);
+        return consumer.Committed(partitions, timeout);
     }
 
     public WatermarkOffsets GetWatermarkOffsets(TopicPartition topicPartition)
     {
-        return this.inner.GetWatermarkOffsets(topicPartition);
+        return consumer.GetWatermarkOffsets(topicPartition);
     }
 
     public WatermarkOffsets QueryWatermarkOffsets(TopicPartition topicPartition, TimeSpan timeout)
     {
-        return this.inner.QueryWatermarkOffsets(topicPartition, timeout);
+        return consumer.QueryWatermarkOffsets(topicPartition, timeout);
     }
 
     public List<TopicPartitionOffset> OffsetsForTimes(
         IEnumerable<TopicPartitionTimestamp> timestampsToSearch,
         TimeSpan timeout)
     {
-        return this.inner.OffsetsForTimes(timestampsToSearch, timeout);
+        return consumer.OffsetsForTimes(timestampsToSearch, timeout);
     }
 
     public TopicPartitionOffset PositionTopicPartitionOffset(TopicPartition partition)
     {
-        return this.inner.PositionTopicPartitionOffset(partition);
+        return consumer.PositionTopicPartitionOffset(partition);
     }
 
     public void Close()
     {
-        this.inner.Close();
-        this.closed = true;
+        consumer.Close();
+        closed = true;
     }
 
     public void Dispose()
     {
-        if (!this.closed)
+        if (!closed)
         {
-            this.Close();
+            Close();
         }
 
-        this.inner.Dispose();
-        this.scope.Dispose();
+        consumer.Dispose();
+        scope.Dispose();
     }
 }

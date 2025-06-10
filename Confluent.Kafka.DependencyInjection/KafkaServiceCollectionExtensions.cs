@@ -27,25 +27,12 @@ public static class KafkaServiceCollectionExtensions
         if (services == null) throw new ArgumentNullException(nameof(services));
 #endif
 
-        services.TryAddSingleton<ClientScopeFactory>(
-            provider =>
-            {
-                return (out KafkaClientOptions options) =>
-                {
-                    // Use shared scope for options dependencies (e.g. serializers, handlers).
-                    var scope = provider.CreateScope();
-
-                    options = scope.ServiceProvider
-                        .GetRequiredService<IOptionsFactory<KafkaClientOptions>>()
-                        .Create(MSOptions.DefaultName);
-
-                    return scope;
-                };
-            });
-
         services.TryAddSingleton(typeof(IProducer<,>), typeof(ScopedProducer<,>));
         services.TryAddSingleton(typeof(IConsumer<,>), typeof(ScopedConsumer<,>));
         services.TryAddSingleton<IAdminClient, ScopedAdminClient>();
+
+        services.TryAddEnumerable(ServiceDescriptor.Transient<IClientConfigProvider, ClientOptionsAdapter>());
+        services.TryAddEnumerable(ServiceDescriptor.Transient<IClientBuilderSetup, ClientOptionsAdapter>());
 
         services.TryAddEnumerable(
             ServiceDescriptor.Transient<IConfigureOptions<KafkaClientOptions>, ConfigureClientOptions>());
