@@ -1,17 +1,34 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
 using Confluent.Kafka.Options;
+using Confluent.Kafka.SyncOverAsync;
 
 using Microsoft.Extensions.DependencyInjection;
 
 sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 {
+    static readonly Type[] BuiltInTypes = [
+        typeof(Null),
+        typeof(Ignore),
+        typeof(int),
+        typeof(long),
+        typeof(string),
+        typeof(float),
+        typeof(double),
+        typeof(byte[]),
+    ];
+
     readonly IServiceScope scope;
     readonly IConsumer<TKey, TValue> consumer;
 
     bool closed;
 
-    public ScopedConsumer(IServiceScopeFactory scopes)
+    public ScopedConsumer(
+        IServiceScopeFactory scopes,
+        IDeserializer<TKey>? keyDeserializer = null,
+        IDeserializer<TValue>? valueDeserializer = null,
+        IAsyncDeserializer<TKey>? asyncKeyDeserializer = null,
+        IAsyncDeserializer<TValue>? asyncValueDeserializer = null)
     {
         scope = scopes.CreateScope();
 
@@ -27,11 +44,35 @@ sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
             }
         }
 
-        var builder = new ConsumerBuilder<TKey, TValue>(config);
+        var builder = new DIBuilder(config);
 
         foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
         {
             setup.Apply(builder);
+        }
+
+        if (builder.KeyDeserializer == null && !BuiltInTypes.Contains(typeof(TKey)))
+        {
+            if (keyDeserializer != null)
+            {
+                builder.SetKeyDeserializer(keyDeserializer);
+            }
+            else if (asyncKeyDeserializer != null)
+            {
+                builder.SetKeyDeserializer(asyncKeyDeserializer.AsSyncOverAsync());
+            }
+        }
+
+        if (builder.ValueDeserializer == null && !BuiltInTypes.Contains(typeof(TValue)))
+        {
+            if (valueDeserializer != null)
+            {
+                builder.SetValueDeserializer(valueDeserializer);
+            }
+            else if (asyncValueDeserializer != null)
+            {
+                builder.SetValueDeserializer(asyncValueDeserializer.AsSyncOverAsync());
+            }
         }
 
         consumer = builder.Build();
@@ -221,5 +262,12 @@ sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
 
         consumer.Dispose();
         scope.Dispose();
+    }
+
+    sealed class DIBuilder(IEnumerable<KeyValuePair<string, string>> config) : ConsumerBuilder<TKey, TValue>(config)
+    {
+        public new IDeserializer<TKey>? KeyDeserializer => base.KeyDeserializer;
+
+        public new IDeserializer<TValue>? ValueDeserializer => base.ValueDeserializer;
     }
 }

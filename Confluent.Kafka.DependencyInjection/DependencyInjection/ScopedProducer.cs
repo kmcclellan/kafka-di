@@ -1,15 +1,32 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
 using Confluent.Kafka.Options;
+using Confluent.Kafka.SyncOverAsync;
 
 using Microsoft.Extensions.DependencyInjection;
 
 sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
 {
+    static readonly Type[] BuiltInTypes = [
+        typeof(Null),
+        typeof(int),
+        typeof(long),
+        typeof(string),
+        typeof(float),
+        typeof(double),
+        typeof(byte[]),
+    ];
+
     readonly IServiceScope scope;
     readonly IProducer<TKey, TValue> producer;
+    readonly IProducer<TKey, TValue>? syncProducer;
 
-    public ScopedProducer(IServiceScopeFactory scopes)
+    public ScopedProducer(
+        IServiceScopeFactory scopes,
+        ISerializer<TKey>? keySerializer = null,
+        ISerializer<TValue>? valueSerializer = null,
+        IAsyncSerializer<TKey>? asyncKeySerializer = null,
+        IAsyncSerializer<TValue>? asyncValueSerializer = null)
     {
         scope = scopes.CreateScope();
 
@@ -25,14 +42,67 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
             }
         }
 
-        var builder = new ProducerBuilder<TKey, TValue>(config);
+        var builder = new DIBuilder(config);
 
         foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
         {
             setup.Apply(builder);
         }
 
+        if (builder.KeySerializer == null && builder.AsyncKeySerializer == null &&
+            !BuiltInTypes.Contains(typeof(TKey)))
+        {
+            if (keySerializer != null)
+            {
+                builder.SetKeySerializer(keySerializer);
+            }
+            else if (asyncKeySerializer != null)
+            {
+                builder.SetKeySerializer(asyncKeySerializer);
+            }
+        }
+
+        if (builder.ValueSerializer == null && builder.AsyncValueSerializer == null &&
+            !BuiltInTypes.Contains(typeof(TValue)))
+        {
+            if (valueSerializer != null)
+            {
+                builder.SetValueSerializer(valueSerializer);
+            }
+            else if (asyncValueSerializer != null)
+            {
+                builder.SetValueSerializer(asyncValueSerializer);
+            }
+        }
+
         producer = builder.Build();
+
+        if (builder.AsyncKeySerializer != null || builder.AsyncValueSerializer != null)
+        {
+            // Workaround to support both modes of delivery handling.
+            // https://github.com/confluentinc/confluent-kafka-dotnet/issues/2481
+            var syncBuilder = new DependentProducerBuilder<TKey, TValue>(producer.Handle);
+
+            if (builder.AsyncKeySerializer != null)
+            {
+                syncBuilder.SetKeySerializer(builder.AsyncKeySerializer.AsSyncOverAsync());
+            }
+            else if (builder.KeySerializer != null)
+            {
+                syncBuilder.SetKeySerializer(builder.KeySerializer);
+            }
+
+            if (builder.AsyncValueSerializer != null)
+            {
+                syncBuilder.SetValueSerializer(builder.AsyncValueSerializer.AsSyncOverAsync());
+            }
+            else if (builder.ValueSerializer != null)
+            {
+                syncBuilder.SetValueSerializer(builder.ValueSerializer);
+            }
+
+            syncProducer = syncBuilder.Build();
+        }
     }
 
     public Handle Handle => producer.Handle;
@@ -54,7 +124,7 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
     {
-        producer.Produce(topic, message, deliveryHandler);
+        (syncProducer ?? producer).Produce(topic, message, deliveryHandler);
     }
 
     public void Produce(
@@ -62,7 +132,7 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
         Message<TKey, TValue> message,
         Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
     {
-        producer.Produce(topicPartition, message, deliveryHandler);
+        (syncProducer ?? producer).Produce(topicPartition, message, deliveryHandler);
     }
 
     public Task<DeliveryResult<TKey, TValue>> ProduceAsync(
@@ -136,7 +206,19 @@ sealed class ScopedProducer<TKey, TValue> : IProducer<TKey, TValue>
 
     public void Dispose()
     {
+        syncProducer?.Dispose();
         producer.Dispose();
         scope.Dispose();
+    }
+
+    sealed class DIBuilder(IEnumerable<KeyValuePair<string, string>> config) : ProducerBuilder<TKey, TValue>(config)
+    {
+        public new ISerializer<TKey>? KeySerializer => base.KeySerializer;
+
+        public new ISerializer<TValue>? ValueSerializer => base.ValueSerializer;
+
+        public new IAsyncSerializer<TKey>? AsyncKeySerializer => base.AsyncKeySerializer;
+
+        public new IAsyncSerializer<TValue>? AsyncValueSerializer => base.AsyncValueSerializer;
     }
 }
