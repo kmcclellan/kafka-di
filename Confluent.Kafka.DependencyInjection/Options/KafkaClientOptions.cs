@@ -5,8 +5,12 @@ using Confluent.Kafka.SyncOverAsync;
 /// <summary>
 /// Options for Kafka clients (producers, consumers, etc.).
 /// </summary>
+[Obsolete(DeprecationMessage)]
 public class KafkaClientOptions
 {
+    internal const string DeprecationMessage = "Configure/resolve clients through the service container directly. " +
+        "This type will be removed in a future version.";
+
     static readonly ClientConfig DefaultConfig = new() { BootstrapServers = "localhost:9092" };
 
     readonly List<IClientConfigProvider> config = [];
@@ -21,6 +25,7 @@ public class KafkaClientOptions
     /// <summary>
     /// Initializes the options.
     /// </summary>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions()
     {
         this.config.Add(new StaticConfig(this.producerConfig, this.consumerConfig, this.adminClientConfig));
@@ -43,6 +48,7 @@ public class KafkaClientOptions
     /// </summary>
     /// <param name="provider">The client config provider.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Configure(IClientConfigProvider provider)
     {
         this.config.Add(provider);
@@ -54,6 +60,7 @@ public class KafkaClientOptions
     /// </summary>
     /// <param name="config">The config properties.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Configure(ProducerConfig config)
     {
         foreach (var kvp in config ?? throw new ArgumentNullException(nameof(config)))
@@ -69,6 +76,7 @@ public class KafkaClientOptions
     /// </summary>
     /// <param name="config">The config properties.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Configure(ConsumerConfig config)
     {
         foreach (var kvp in config ?? throw new ArgumentNullException(nameof(config)))
@@ -84,6 +92,7 @@ public class KafkaClientOptions
     /// </summary>
     /// <param name="config">The config properties.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Configure(AdminClientConfig config)
     {
         foreach (var kvp in config ?? throw new ArgumentNullException(nameof(config)))
@@ -99,6 +108,7 @@ public class KafkaClientOptions
     /// </summary>
     /// <param name="setup">The client builder setup.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Setup(IClientBuilderSetup setup)
     {
         this.setups.Add(setup);
@@ -111,6 +121,7 @@ public class KafkaClientOptions
     /// <typeparam name="T">The producer key/value type.</typeparam>
     /// <param name="serializer">The serializer.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Serialize<T>(ISerializer<T> serializer)
     {
         this.setups.Add(new SerdesSetup<T>(serializer: serializer));
@@ -128,6 +139,7 @@ public class KafkaClientOptions
     /// Must be set to <see langword="false"/> in order to use delivery callbacks (e.g. <see cref="IProducer{TKey, TValue}.Produce(TopicPartition, Message{TKey, TValue}, Action{DeliveryReport{TKey, TValue}})"/>).
     /// </param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Serialize<T>(IAsyncSerializer<T> serializer, bool nonblocking = false)
     {
         if (nonblocking)
@@ -147,6 +159,7 @@ public class KafkaClientOptions
     /// <typeparam name="T">The consumer key/value type.</typeparam>
     /// <param name="deserializer">The deserializer.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Deserialize<T>(IDeserializer<T> deserializer)
     {
         this.setups.Add(new SerdesSetup<T>(deserializer: deserializer));
@@ -159,6 +172,7 @@ public class KafkaClientOptions
     /// <typeparam name="T">The consumer key/value type.</typeparam>
     /// <param name="deserializer">The deserializer.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Deserialize<T>(IAsyncDeserializer<T> deserializer)
     {
         return this.Deserialize(deserializer.AsSyncOverAsync());
@@ -170,6 +184,7 @@ public class KafkaClientOptions
     /// <param name="partitioner">The partitioner delegate.</param>
     /// <param name="topic">The topic to which this partitioner applies, or <see langword="null"/> for all.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions Partition(PartitionerDelegate partitioner, string? topic = null)
     {
         this.setups.Add(new PartitionerSetup(partitioner, topic));
@@ -181,6 +196,7 @@ public class KafkaClientOptions
     /// </summary>
     /// <param name="handler">The handler delegate.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions OnError(Action<IClient, Error> handler)
     {
         this.handlers.ErrorHandler += handler;
@@ -193,6 +209,7 @@ public class KafkaClientOptions
     /// <remarks>Statistics are JSON-serialized and described in <see href="https://github.com/confluentinc/librdkafka/blob/master/STATISTICS.md">librdkafka documentation</see>.</remarks>
     /// <param name="handler">The handler delegate.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions OnStatistics(Action<IClient, string> handler)
     {
         this.handlers.StatisticsHandler += handler;
@@ -207,6 +224,7 @@ public class KafkaClientOptions
     /// </remarks>
     /// <param name="handler">The handler delegate.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions OnAuthenticate(Action<IClient, string> handler)
     {
         this.handlers.AuthenticateHandler += handler;
@@ -218,6 +236,7 @@ public class KafkaClientOptions
     /// </summary>
     /// <param name="handler">The handler delegate.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions OnRebalance(Action<IClient, RebalancedOffsets> handler)
     {
         return this.OnRebalance(
@@ -239,6 +258,7 @@ public class KafkaClientOptions
     /// </remarks>
     /// <param name="handler">The handler delegate.</param>
     /// <returns>The same instance, for chaining.</returns>
+    [Obsolete(DeprecationMessage)]
     public KafkaClientOptions OnRebalance(Func<IClient, RebalancedOffsets, IEnumerable<TopicPartitionOffset>> handler)
     {
         this.handlers.RebalanceHandler += handler;
@@ -262,6 +282,7 @@ public class KafkaClientOptions
     /// <typeparam name="TKey">The producer key type.</typeparam>
     /// <typeparam name="TValue">The producer value type.</typeparam>
     /// <returns>The producer.</returns>
+    [Obsolete(DeprecationMessage)]
     public IProducer<TKey, TValue> CreateProducer<TKey, TValue>()
     {
         var builder = new ProducerBuilder<TKey, TValue>(
@@ -281,6 +302,7 @@ public class KafkaClientOptions
     /// <typeparam name="TKey">The consumer key type.</typeparam>
     /// <typeparam name="TValue">The consumer value type.</typeparam>
     /// <returns>The consumer.</returns>
+    [Obsolete(DeprecationMessage)]
     public IConsumer<TKey, TValue> CreateConsumer<TKey, TValue>()
     {
         var builder = new ConsumerBuilder<TKey, TValue>(
@@ -298,6 +320,7 @@ public class KafkaClientOptions
     /// Creates an admin client using the options.
     /// </summary>
     /// <returns>The admin client.</returns>
+    [Obsolete(DeprecationMessage)]
     public IAdminClient CreateAdminClient()
     {
         var builder = new AdminClientBuilder(

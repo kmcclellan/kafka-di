@@ -17,6 +17,9 @@ public static class KafkaConfigurationExtensions
     /// </remarks>
     /// <param name="config">The configuration.</param>
     /// <param name="options">The Kafka client options.</param>
+    [Obsolete(
+        "Use LoadFrom(...) on the typed config properties types instead. " +
+            "This method will be removed in a future version.")]
     public static void Bind(this IConfiguration config, KafkaClientOptions options)
     {
 #if NET7_0_OR_GREATER
