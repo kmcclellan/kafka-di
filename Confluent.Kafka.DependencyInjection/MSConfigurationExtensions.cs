@@ -63,7 +63,7 @@ public static class MSConfigurationExtensions
 
     static void LoadFrom(Config config, IConfiguration configuration, string sectionName)
     {
-        var section = configuration.GetSection(ConfigurationPath.Combine("Kafka", sectionName));
+        var section = configuration.GetSection("Kafka").GetSection(sectionName);
 
         foreach (var child in section.GetChildren())
         {
