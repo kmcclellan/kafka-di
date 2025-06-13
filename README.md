@@ -21,7 +21,7 @@ Kafka DI works out-of-the-box after registering services with an `IServiceCollec
 
 ```c#
 services.AddKafkaClient();
-services.AddSingleton<MyService>();
+services.AddTransient<MyService>();
 ```
 
 Inject Kafka clients via constructor.
@@ -38,7 +38,7 @@ public MyService(IProducer<string, byte[]> producer, IConsumer<Ignore, MyType> c
 
 ### Configuring clients
 
-Client config properties are bound to the `Kafka` section of .NET configuration providers, such as `appsettings.json`.
+Client configuration properties are bound to the `Kafka` section of .NET configuration providers, such as `appsettings.json`.
 
 ```json
 {
@@ -58,26 +58,20 @@ Client config properties are bound to the `Kafka` section of .NET configuration 
 }
 ```
 
-You can also leverage `KafkaClientOptions` to customize clients further, including serialization and event handlers.
+You can also specify configuration properties using the options pattern.
 
 ```c#
-var builder = services.AddKafkaClient()
+// Prepare consumers for manual offset storage.
+services.Configure<ConsumerConfig>(x => x.EnableAutoOffsetStore = false);
+```
 
-builder.Configure(
-    options =>
-    {
-        // Config properties apply to all clients with a matching type (consumers, in this case).
-        options.Configure(new ConsumerConfig { StatisticsIntervalMs = 5000 });
+Configure serialization by registering the appropriate interface.
 
-        // Optionally, configure handlers for asynchronous client events.
-        options.OnStatistics((x, y) => Console.WriteLine(y));
-    });
+```c#
+// "Open" generic registrations apply to all key/value types (except built-in types).
+services.AddTransient(typeof(IAsyncDeserializer<>), typeof(JsonDeserializer<>));
 
-// Optionally, configure serialization for specific types.
-builder.Configure<JsonDeserializer<MyType>>((x, y) => x.Deserialize(y));
-services.AddSingleton(typeof(JsonDeserializer<>));
-
-// Configure schema registry (required by some serializers).
+// Configure schema registry (required by Confluent serializers).
 services.AddSingleton<ISchemaRegistryClient>(
     x => new CachedSchemaRegistryClient(new SchemaRegistryConfig { Url = "localhost:8081" }));
 ```

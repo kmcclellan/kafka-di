@@ -10,27 +10,18 @@ var services = new ServiceCollection();
 services.AddSingleton<IConfiguration>(
     x => new ConfigurationBuilder().AddJsonFile("appsettings.json").Build());
 
-var builder = services.AddKafkaClient();
+services.AddKafkaClient();
+services.AddTransient<MyService>();
 
-builder.Configure(
-    options =>
-    {
-        // Config properties apply to all clients with a matching type (consumers, in this case).
-        options.Configure(new ConsumerConfig { StatisticsIntervalMs = 5000 });
+// Prepare consumers for manual offset storage.
+services.Configure<ConsumerConfig>(x => x.EnableAutoOffsetStore = false);
 
-        // Optionally, configure handlers for asynchronous client events.
-        options.OnStatistics((x, y) => Console.WriteLine(y));
-    });
+// "Open" generic registrations apply to all key/value types (except built-in types).
+services.AddTransient(typeof(IAsyncDeserializer<>), typeof(JsonDeserializer<>));
 
-// Optionally, configure serialization for specific types.
-builder.Configure<JsonDeserializer<MyType>>((x, y) => x.Deserialize(y));
-services.AddSingleton(typeof(JsonDeserializer<>));
-
-// Configure schema registry (required by some serializers).
+// Configure schema registry (required by Confluent serializers).
 services.AddSingleton<ISchemaRegistryClient>(
     x => new CachedSchemaRegistryClient(new SchemaRegistryConfig { Url = "localhost:8081" }));
-
-services.AddSingleton<MyService>();
 
 await using var provider = services.BuildServiceProvider();
 var test = provider.GetRequiredService<MyService>();
