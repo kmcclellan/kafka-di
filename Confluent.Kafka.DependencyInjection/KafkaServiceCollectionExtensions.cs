@@ -48,11 +48,23 @@ public static class KafkaServiceCollectionExtensions
         services.TryAddSingleton<IAdminClient, ScopedAdminClient>();
 
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IConfigureOptions<KafkaClientOptions>, ConfigureClientLogging>());
+            ServiceDescriptor.Transient<IConfigureOptions<KafkaClientOptions>, ConfigureClientOptions>());
 
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IConfigureOptions<KafkaClientOptions>, ConfigureClientProperties>());
+        services.TryAddTransient<DefaultConfigProvider>();
+        services.TryAddTransient<LoggingBuilderSetup>();
+
+        AddClientConfig<AdminClientConfig, ConfigureClientProperties>(services);
+        AddClientConfig<ConsumerConfig, ConfigureClientProperties>(services);
+        AddClientConfig<ProducerConfig, ConfigureClientProperties>(services);
 
         return services.AddOptions<KafkaClientOptions>();
+    }
+
+    static void AddClientConfig<TConfig, TConfigure>(IServiceCollection services)
+        where TConfig : class
+        where TConfigure : class, IConfigureOptions<TConfig>
+    {
+        services.TryAddTransient(x => x.GetRequiredService<IOptionsFactory<TConfig>>().Create(MSOptions.DefaultName));
+        services.TryAddEnumerable(ServiceDescriptor.Transient<IConfigureOptions<TConfig>, TConfigure>());
     }
 }

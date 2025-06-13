@@ -1,15 +1,34 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
-using Confluent.Kafka.Options;
-
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
-sealed class ConfigureClientProperties(IConfiguration? config = null) :
-    ConfigureOptions<KafkaClientOptions>(config != null ? x => Configure(config, x) : null)
+sealed class ConfigureClientProperties(IConfiguration? configuration = null) :
+    IConfigureOptions<AdminClientConfig>,
+    IConfigureOptions<ConsumerConfig>,
+    IConfigureOptions<ProducerConfig>
 {
-    public static void Configure(IConfiguration config, KafkaClientOptions options)
+    public void Configure(AdminClientConfig options)
     {
-        config.GetSection("Kafka").Bind(options);
+        if (configuration != null)
+        {
+            options.LoadFrom(configuration);
+        }
+    }
+
+    public void Configure(ConsumerConfig options)
+    {
+        if (configuration != null)
+        {
+            options.LoadFrom(configuration);
+        }
+    }
+
+    public void Configure(ProducerConfig options)
+    {
+        if (configuration != null)
+        {
+            options.LoadFrom(configuration);
+        }
     }
 }
