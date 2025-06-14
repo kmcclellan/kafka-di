@@ -1,4 +1,5 @@
 using Confluent.Kafka;
+using Confluent.Kafka.Options;
 using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 
@@ -23,6 +24,8 @@ services.AddTransient(typeof(IAsyncDeserializer<>), typeof(JsonDeserializer<>));
 services.AddSingleton<ISchemaRegistryClient>(
     x => new CachedSchemaRegistryClient(new SchemaRegistryConfig { Url = "localhost:8081" }));
 
+services.AddTransient<IClientBuilderSetup, MyClientSetup>();
+
 await using var provider = services.BuildServiceProvider();
 var test = provider.GetRequiredService<MyService>();
 
@@ -43,4 +46,27 @@ class MyService(IProducer<string, byte[]> producer, IConsumer<Ignore, MyType> co
 class MyType
 {
     public string Data { get; set; }
+}
+
+class MyClientSetup : IClientBuilderSetup
+{
+    public void Apply<TKey, TValue>(ProducerBuilder<TKey, TValue> builder)
+    {
+        builder.SetStatisticsHandler(OnStatistics);
+    }
+
+    public void Apply<TKey, TValue>(ConsumerBuilder<TKey, TValue> builder)
+    {
+        builder.SetStatisticsHandler(OnStatistics);
+    }
+
+    public void Apply(AdminClientBuilder builder)
+    {
+        builder.SetStatisticsHandler(OnStatistics);
+    }
+
+    void OnStatistics(IClient client, string statistics)
+    {
+        Console.WriteLine($"New statistics available for {client.Name}");
+    }
 }

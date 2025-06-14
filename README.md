@@ -2,8 +2,7 @@
 An extension of [Confluent's Kafka client](https://github.com/confluentinc/confluent-kafka-dotnet) for use with `Microsoft.Extensions.DependencyInjection` (and friends).
 
 ### Features
-* Inject/resolve Kafka clients using the service container.
-* Configure Kafka clients using the options pattern.
+* Configure/resolve Kafka clients using the service container.
 * Load client config properties using `Microsoft.Extensions.Configuration`.
 * Automatically log client events using `Microsoft.Extensions.Logging`.
 
@@ -74,4 +73,37 @@ services.AddTransient(typeof(IAsyncDeserializer<>), typeof(JsonDeserializer<>));
 // Configure schema registry (required by Confluent serializers).
 services.AddSingleton<ISchemaRegistryClient>(
     x => new CachedSchemaRegistryClient(new SchemaRegistryConfig { Url = "localhost:8081" }));
+```
+
+For advanced scenarios, implement `IClientBuilderSetup` to customize clients further.
+
+```c#
+class MyClientSetup : IClientBuilderSetup
+{
+    public void Apply<TKey, TValue>(ProducerBuilder<TKey, TValue> builder)
+    {
+        builder.SetStatisticsHandler(OnStatistics);
+    }
+
+    public void Apply<TKey, TValue>(ConsumerBuilder<TKey, TValue> builder)
+    {
+        builder.SetStatisticsHandler(OnStatistics);
+    }
+
+    public void Apply(AdminClientBuilder builder)
+    {
+        builder.SetStatisticsHandler(OnStatistics);
+    }
+
+    void OnStatistics(IClient client, string statistics)
+    {
+        Console.WriteLine($"New statistics available for {client.Name}");
+    }
+}
+```
+
+Register custom setup with services.
+
+```c#
+services.AddTransient<IClientBuilderSetup, MyClientSetup>();
 ```
