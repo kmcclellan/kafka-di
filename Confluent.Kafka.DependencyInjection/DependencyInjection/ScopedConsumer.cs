@@ -5,7 +5,13 @@ using Confluent.Kafka.SyncOverAsync;
 
 using Microsoft.Extensions.DependencyInjection;
 
-sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
+sealed class ScopedConsumer<TKey, TValue>(
+    IServiceScopeFactory scopes,
+    IDeserializer<TKey>? keyDeserializer = null,
+    IDeserializer<TValue>? valueDeserializer = null,
+    IAsyncDeserializer<TKey>? asyncKeyDeserializer = null,
+    IAsyncDeserializer<TValue>? asyncValueDeserializer = null) :
+    IConsumer<TKey, TValue>
 {
     static readonly Type[] BuiltInTypes = [
         typeof(Null),
@@ -18,239 +24,253 @@ sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
         typeof(byte[]),
     ];
 
-    readonly IServiceScope scope;
-    readonly IConsumer<TKey, TValue> consumer;
+    readonly object syncObj = new();
+
+    IServiceScope? scope;
+    IConsumer<TKey, TValue>? consumer;
 
     bool closed;
 
-    public ScopedConsumer(
-        IServiceScopeFactory scopes,
-        IDeserializer<TKey>? keyDeserializer = null,
-        IDeserializer<TValue>? valueDeserializer = null,
-        IAsyncDeserializer<TKey>? asyncKeyDeserializer = null,
-        IAsyncDeserializer<TValue>? asyncValueDeserializer = null)
+    public Handle Handle => Consumer.Handle;
+
+    public string Name => Consumer.Name;
+
+    public List<string> Subscription => Consumer.Subscription;
+
+    public List<TopicPartition> Assignment => Consumer.Assignment;
+
+    public string MemberId => Consumer.MemberId;
+
+    public IConsumerGroupMetadata ConsumerGroupMetadata => Consumer.ConsumerGroupMetadata;
+
+    IConsumer<TKey, TValue> Consumer
     {
-        scope = scopes.CreateScope();
-
-        var config = new Dictionary<string, string>();
-
-        foreach (var provider in scope.ServiceProvider.GetServices<IClientConfigProvider>())
+        get
         {
-            var iterator = provider.ForConsumer<TKey, TValue>();
-
-            while (iterator.MoveNext())
+            if (consumer == null)
             {
-                config[iterator.Current.Key] = iterator.Current.Value;
+                lock (syncObj)
+                {
+                    if (consumer == null)
+                    {
+                        scope = scopes.CreateScope();
+
+                        var config = new Dictionary<string, string>();
+
+                        foreach (var provider in scope.ServiceProvider.GetServices<IClientConfigProvider>())
+                        {
+                            var iterator = provider.ForConsumer<TKey, TValue>();
+
+                            while (iterator.MoveNext())
+                            {
+                                config[iterator.Current.Key] = iterator.Current.Value;
+                            }
+                        }
+
+                        var builder = new DIBuilder(config);
+
+                        foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
+                        {
+                            setup.Apply(builder);
+                        }
+
+                        if (builder.KeyDeserializer == null && !BuiltInTypes.Contains(typeof(TKey)))
+                        {
+                            if (keyDeserializer != null)
+                            {
+                                builder.SetKeyDeserializer(keyDeserializer);
+                            }
+                            else if (asyncKeyDeserializer != null)
+                            {
+                                builder.SetKeyDeserializer(asyncKeyDeserializer.AsSyncOverAsync());
+                            }
+                        }
+
+                        if (builder.ValueDeserializer == null && !BuiltInTypes.Contains(typeof(TValue)))
+                        {
+                            if (valueDeserializer != null)
+                            {
+                                builder.SetValueDeserializer(valueDeserializer);
+                            }
+                            else if (asyncValueDeserializer != null)
+                            {
+                                builder.SetValueDeserializer(asyncValueDeserializer.AsSyncOverAsync());
+                            }
+                        }
+
+                        consumer = builder.Build();
+                    }
+                }
             }
+
+            return consumer;
         }
-
-        var builder = new DIBuilder(config);
-
-        foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
-        {
-            setup.Apply(builder);
-        }
-
-        if (builder.KeyDeserializer == null && !BuiltInTypes.Contains(typeof(TKey)))
-        {
-            if (keyDeserializer != null)
-            {
-                builder.SetKeyDeserializer(keyDeserializer);
-            }
-            else if (asyncKeyDeserializer != null)
-            {
-                builder.SetKeyDeserializer(asyncKeyDeserializer.AsSyncOverAsync());
-            }
-        }
-
-        if (builder.ValueDeserializer == null && !BuiltInTypes.Contains(typeof(TValue)))
-        {
-            if (valueDeserializer != null)
-            {
-                builder.SetValueDeserializer(valueDeserializer);
-            }
-            else if (asyncValueDeserializer != null)
-            {
-                builder.SetValueDeserializer(asyncValueDeserializer.AsSyncOverAsync());
-            }
-        }
-
-        consumer = builder.Build();
     }
-
-    public Handle Handle => consumer.Handle;
-
-    public string Name => consumer.Name;
-
-    public List<string> Subscription => consumer.Subscription;
-
-    public List<TopicPartition> Assignment => consumer.Assignment;
-
-    public string MemberId => consumer.MemberId;
-
-    public IConsumerGroupMetadata ConsumerGroupMetadata => consumer.ConsumerGroupMetadata;
 
     public int AddBrokers(string brokers)
     {
-        return consumer.AddBrokers(brokers);
+        return Consumer.AddBrokers(brokers);
     }
 
     public void SetSaslCredentials(string username, string password)
     {
-        consumer.SetSaslCredentials(username, password);
+        Consumer.SetSaslCredentials(username, password);
     }
 
     public void Subscribe(string topic)
     {
-        consumer.Subscribe(topic);
+        Consumer.Subscribe(topic);
     }
 
     public void Subscribe(IEnumerable<string> topics)
     {
-        consumer.Subscribe(topics);
+        Consumer.Subscribe(topics);
     }
 
     public void Unsubscribe()
     {
-        consumer.Unsubscribe();
+        Consumer.Unsubscribe();
     }
 
     public void Assign(TopicPartition partition)
     {
-        consumer.Assign(partition);
+        Consumer.Assign(partition);
     }
 
     public void Assign(TopicPartitionOffset partition)
     {
-        consumer.Assign(partition);
+        Consumer.Assign(partition);
     }
 
     public void Assign(IEnumerable<TopicPartitionOffset> partitions)
     {
-        consumer.Assign(partitions);
+        Consumer.Assign(partitions);
     }
 
     public void Assign(IEnumerable<TopicPartition> partitions)
     {
-        consumer.Assign(partitions);
+        Consumer.Assign(partitions);
     }
 
     public void IncrementalAssign(IEnumerable<TopicPartitionOffset> partitions)
     {
-        consumer.IncrementalAssign(partitions);
+        Consumer.IncrementalAssign(partitions);
     }
 
     public void IncrementalAssign(IEnumerable<TopicPartition> partitions)
     {
-        consumer.IncrementalAssign(partitions);
+        Consumer.IncrementalAssign(partitions);
     }
 
     public void Unassign()
     {
-        consumer.Unassign();
+        Consumer.Unassign();
     }
 
     public void IncrementalUnassign(IEnumerable<TopicPartition> partitions)
     {
-        consumer.IncrementalUnassign(partitions);
+        Consumer.IncrementalUnassign(partitions);
     }
 
     public void Seek(TopicPartitionOffset tpo)
     {
-        consumer.Seek(tpo);
+        Consumer.Seek(tpo);
     }
 
     public ConsumeResult<TKey, TValue> Consume(int millisecondsTimeout)
     {
-        return consumer.Consume(millisecondsTimeout);
+        return Consumer.Consume(millisecondsTimeout);
     }
 
     public ConsumeResult<TKey, TValue> Consume(CancellationToken cancellationToken = default)
     {
-        return consumer.Consume(cancellationToken);
+        return Consumer.Consume(cancellationToken);
     }
 
     public ConsumeResult<TKey, TValue> Consume(TimeSpan timeout)
     {
-        return consumer.Consume(timeout);
+        return Consumer.Consume(timeout);
     }
 
     public void Pause(IEnumerable<TopicPartition> partitions)
     {
-        consumer.Pause(partitions);
+        Consumer.Pause(partitions);
     }
 
     public void Resume(IEnumerable<TopicPartition> partitions)
     {
-        consumer.Resume(partitions);
+        Consumer.Resume(partitions);
     }
 
     public List<TopicPartitionOffset> Commit()
     {
-        return consumer.Commit();
+        return Consumer.Commit();
     }
 
     public void Commit(ConsumeResult<TKey, TValue> result)
     {
-        consumer.Commit(result);
+        Consumer.Commit(result);
     }
 
     public void Commit(IEnumerable<TopicPartitionOffset> offsets)
     {
-        consumer.Commit(offsets);
+        Consumer.Commit(offsets);
     }
 
     public void StoreOffset(ConsumeResult<TKey, TValue> result)
     {
-        consumer.StoreOffset(result);
+        Consumer.StoreOffset(result);
     }
 
     public void StoreOffset(TopicPartitionOffset offset)
     {
-        consumer.StoreOffset(offset);
+        Consumer.StoreOffset(offset);
     }
 
     public Offset Position(TopicPartition partition)
     {
-        return consumer.Position(partition);
+        return Consumer.Position(partition);
     }
 
     public List<TopicPartitionOffset> Committed(TimeSpan timeout)
     {
-        return consumer.Committed(timeout);
+        return Consumer.Committed(timeout);
     }
 
     public List<TopicPartitionOffset> Committed(IEnumerable<TopicPartition> partitions, TimeSpan timeout)
     {
-        return consumer.Committed(partitions, timeout);
+        return Consumer.Committed(partitions, timeout);
     }
 
     public WatermarkOffsets GetWatermarkOffsets(TopicPartition topicPartition)
     {
-        return consumer.GetWatermarkOffsets(topicPartition);
+        return Consumer.GetWatermarkOffsets(topicPartition);
     }
 
     public WatermarkOffsets QueryWatermarkOffsets(TopicPartition topicPartition, TimeSpan timeout)
     {
-        return consumer.QueryWatermarkOffsets(topicPartition, timeout);
+        return Consumer.QueryWatermarkOffsets(topicPartition, timeout);
     }
 
     public List<TopicPartitionOffset> OffsetsForTimes(
         IEnumerable<TopicPartitionTimestamp> timestampsToSearch,
         TimeSpan timeout)
     {
-        return consumer.OffsetsForTimes(timestampsToSearch, timeout);
+        return Consumer.OffsetsForTimes(timestampsToSearch, timeout);
     }
 
     public TopicPartitionOffset PositionTopicPartitionOffset(TopicPartition partition)
     {
-        return consumer.PositionTopicPartitionOffset(partition);
+        return Consumer.PositionTopicPartitionOffset(partition);
     }
 
     public void Close()
     {
-        consumer.Close();
-        closed = true;
+        if (consumer != null)
+        {
+            consumer.Close();
+            closed = true;
+        }
     }
 
     public void Dispose()
@@ -260,8 +280,8 @@ sealed class ScopedConsumer<TKey, TValue> : IConsumer<TKey, TValue>
             Close();
         }
 
-        consumer.Dispose();
-        scope.Dispose();
+        consumer?.Dispose();
+        scope?.Dispose();
     }
 
     sealed class DIBuilder(IEnumerable<KeyValuePair<string, string>> config) : ConsumerBuilder<TKey, TValue>(config)
