@@ -13,8 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="Confluent.SchemaRegistry.Serdes.Json" Version="*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="*" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="*" />
   </ItemGroup>
 
   <ItemGroup>

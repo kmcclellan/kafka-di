@@ -107,3 +107,29 @@ Register custom setup with services.
 ```c#
 services.AddTransient<IClientBuilderSetup, MyClientSetup>();
 ```
+
+### Consumer hosting
+
+Once the client is configured, a common pattern for consuming is to implement a .NET `BackgroundService`.
+
+```c#
+class MyWorker(IConsumer<Ignore, MyType> consumer) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        Console.WriteLine("Consumer service started.");
+
+        // ConsumeAllAsync() is an extension provided by this library.
+        await foreach (var result in consumer.ConsumeAllAsync().WithCancellation(stoppingToken))
+        {
+            Console.WriteLine($"Message {result.TopicPartitionOffset} processed.");
+        }
+    }
+}
+```
+
+Register the service with the container.
+
+```c#
+services.AddHostedService<MyWorker>();
+```
