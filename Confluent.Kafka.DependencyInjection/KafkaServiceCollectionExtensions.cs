@@ -1,13 +1,10 @@
 namespace Confluent.Kafka;
 
 using Confluent.Kafka.DependencyInjection;
-using Confluent.Kafka.Options;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-
-using MSOptions = Microsoft.Extensions.Options.Options;
 
 /// <summary>
 /// Extensions to configure Kafka clients as services.
@@ -18,8 +15,8 @@ public static class KafkaServiceCollectionExtensions
     /// Adds <see cref="IProducer{TKey, TValue}"/>, <see cref="IConsumer{TKey, TValue}"/>, and <see cref="IAdminClient"/> to the services.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <returns>A builder for client options.</returns>
-    public static OptionsBuilder<KafkaClientOptions> AddKafkaClient(this IServiceCollection services)
+    /// <returns>The same services, for chaining.</returns>
+    public static IServiceCollection AddKafkaClient(this IServiceCollection services)
     {
 #if NET7_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(services, nameof(services));
@@ -31,27 +28,23 @@ public static class KafkaServiceCollectionExtensions
         services.TryAddSingleton(typeof(IConsumer<,>), typeof(ScopedConsumer<,>));
         services.TryAddSingleton<IAdminClient, ScopedAdminClient>();
 
-        services.TryAddEnumerable(ServiceDescriptor.Transient<IClientConfigProvider, ClientOptionsAdapter>());
-        services.TryAddEnumerable(ServiceDescriptor.Transient<IClientBuilderSetup, ClientOptionsAdapter>());
+        services.AddOptions();
 
-        services.TryAddEnumerable(
-            ServiceDescriptor.Transient<IConfigureOptions<KafkaClientOptions>, ConfigureClientOptions>());
-
-        services.TryAddTransient<DefaultConfigProvider>();
-        services.TryAddTransient<LoggingBuilderSetup>();
+        services.TryAddEnumerable(ServiceDescriptor.Transient<IClientConfigProvider, DefaultConfigProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Transient<IClientBuilderSetup, LoggingBuilderSetup>());
 
         AddClientConfig<AdminClientConfig, ConfigureClientProperties>(services);
         AddClientConfig<ConsumerConfig, ConfigureClientProperties>(services);
         AddClientConfig<ProducerConfig, ConfigureClientProperties>(services);
 
-        return services.AddOptions<KafkaClientOptions>();
+        return services;
     }
 
     static void AddClientConfig<TConfig, TConfigure>(IServiceCollection services)
         where TConfig : class
         where TConfigure : class, IConfigureOptions<TConfig>
     {
-        services.TryAddTransient(x => x.GetRequiredService<IOptionsFactory<TConfig>>().Create(MSOptions.DefaultName));
+        services.TryAddTransient(x => x.GetRequiredService<IOptionsFactory<TConfig>>().Create(Options.DefaultName));
         services.TryAddEnumerable(ServiceDescriptor.Transient<IConfigureOptions<TConfig>, TConfigure>());
     }
 }

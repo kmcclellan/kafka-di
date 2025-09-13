@@ -1,7 +1,5 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
-using Confluent.Kafka.Options;
-
 using Microsoft.Extensions.Logging;
 
 sealed class LoggingBuilderSetup(ILoggerFactory? factory = null) : IClientBuilderSetup

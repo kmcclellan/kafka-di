@@ -1,7 +1,5 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
-using Confluent.Kafka.Options;
-
 using System.Collections.Generic;
 
 sealed class DefaultConfigProvider(

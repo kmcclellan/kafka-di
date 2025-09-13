@@ -1,6 +1,5 @@
 ﻿namespace Confluent.Kafka.DependencyInjection;
 
-using Confluent.Kafka.Options;
 using Confluent.Kafka.SyncOverAsync;
 
 using Microsoft.Extensions.DependencyInjection;

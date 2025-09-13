@@ -1,4 +1,4 @@
-﻿namespace Confluent.Kafka.Options;
+﻿namespace Confluent.Kafka.DependencyInjection;
 
 /// <summary>
 /// A provider of config properties for Kafka clients.

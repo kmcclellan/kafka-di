@@ -1,5 +1,5 @@
 using Confluent.Kafka;
-using Confluent.Kafka.Options;
+using Confluent.Kafka.DependencyInjection;
 using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 

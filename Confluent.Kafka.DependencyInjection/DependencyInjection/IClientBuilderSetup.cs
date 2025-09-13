@@ -1,4 +1,4 @@
-namespace Confluent.Kafka.Options;
+namespace Confluent.Kafka.DependencyInjection;
 
 /// <summary>
 /// Incrementally configures various Kafka client builders.

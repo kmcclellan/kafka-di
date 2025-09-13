@@ -10,6 +10,8 @@ sealed class ConfigureClientProperties(IConfiguration? configuration = null) :
 {
     public void Configure(AdminClientConfig options)
     {
+        ApplyDefaults(options);
+
         if (configuration != null)
         {
             options.LoadFrom(configuration);
@@ -18,6 +20,8 @@ sealed class ConfigureClientProperties(IConfiguration? configuration = null) :
 
     public void Configure(ConsumerConfig options)
     {
+        ApplyDefaults(options);
+
         if (configuration != null)
         {
             options.LoadFrom(configuration);
@@ -26,9 +30,19 @@ sealed class ConfigureClientProperties(IConfiguration? configuration = null) :
 
     public void Configure(ProducerConfig options)
     {
+        ApplyDefaults(options);
+
         if (configuration != null)
         {
             options.LoadFrom(configuration);
+        }
+    }
+
+    static void ApplyDefaults(ClientConfig options)
+    {
+        if (string.IsNullOrEmpty(options.BootstrapServers))
+        {
+            options.BootstrapServers = "localhost:9092";
         }
     }
 }
