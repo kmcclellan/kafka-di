@@ -1,30 +1,38 @@
-﻿namespace Confluent.Kafka.DependencyInjection;
-
-using Microsoft.Extensions.Logging;
-
-sealed class LoggingBuilderSetup(ILoggerFactory? factory = null) : IClientBuilderSetup
+﻿namespace Confluent.Kafka.DependencyInjection
 {
-    public void Apply<TKey, TValue>(ProducerBuilder<TKey, TValue> builder)
-    {
-        if (factory != null)
-        {
-            builder.AddLogging(factory);
-        }
-    }
+    using Microsoft.Extensions.Logging;
 
-    public void Apply<TKey, TValue>(ConsumerBuilder<TKey, TValue> builder)
+    sealed class LoggingBuilderSetup : IClientBuilderSetup
     {
-        if (factory != null)
-        {
-            builder.AddLogging(factory);
-        }
-    }
+        readonly ILoggerFactory factory;
 
-    public void Apply(AdminClientBuilder builder)
-    {
-        if (factory != null)
+        public LoggingBuilderSetup(ILoggerFactory factory = null)
         {
-            builder.AddLogging(factory);
+            this.factory = factory;
+        }
+
+        public void Apply<TKey, TValue>(ProducerBuilder<TKey, TValue> builder)
+        {
+            if (factory != null)
+            {
+                builder.AddLogging(factory);
+            }
+        }
+
+        public void Apply<TKey, TValue>(ConsumerBuilder<TKey, TValue> builder)
+        {
+            if (factory != null)
+            {
+                builder.AddLogging(factory);
+            }
+        }
+
+        public void Apply(AdminClientBuilder builder)
+        {
+            if (factory != null)
+            {
+                builder.AddLogging(factory);
+            }
         }
     }
 }

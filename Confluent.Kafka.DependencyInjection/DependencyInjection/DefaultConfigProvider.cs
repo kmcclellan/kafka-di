@@ -1,25 +1,37 @@
-﻿namespace Confluent.Kafka.DependencyInjection;
-
-using System.Collections.Generic;
-
-sealed class DefaultConfigProvider(
-    AdminClientConfig adminClientConfig,
-    ConsumerConfig consumerConfig,
-    ProducerConfig producerConfig) :
-    IClientConfigProvider
+﻿namespace Confluent.Kafka.DependencyInjection
 {
-    public IEnumerator<KeyValuePair<string, string>> ForAdminClient()
-    {
-        return adminClientConfig.GetEnumerator();
-    }
+    using System.Collections.Generic;
 
-    public IEnumerator<KeyValuePair<string, string>> ForConsumer<TKey, TValue>()
+    sealed class DefaultConfigProvider :
+        IClientConfigProvider
     {
-        return consumerConfig.GetEnumerator();
-    }
+        readonly AdminClientConfig adminClientConfig;
+        readonly ConsumerConfig consumerConfig;
+        readonly ProducerConfig producerConfig;
 
-    public IEnumerator<KeyValuePair<string, string>> ForProducer<TKey, TValue>()
-    {
-        return producerConfig.GetEnumerator();
+        public DefaultConfigProvider(
+            AdminClientConfig adminClientConfig,
+            ConsumerConfig consumerConfig,
+            ProducerConfig producerConfig)
+        {
+            this.adminClientConfig = adminClientConfig;
+            this.consumerConfig = consumerConfig;
+            this.producerConfig = producerConfig;
+        }
+
+        public IEnumerator<KeyValuePair<string, string>> ForAdminClient()
+        {
+            return adminClientConfig.GetEnumerator();
+        }
+
+        public IEnumerator<KeyValuePair<string, string>> ForConsumer<TKey, TValue>()
+        {
+            return consumerConfig.GetEnumerator();
+        }
+
+        public IEnumerator<KeyValuePair<string, string>> ForProducer<TKey, TValue>()
+        {
+            return producerConfig.GetEnumerator();
+        }
     }
 }

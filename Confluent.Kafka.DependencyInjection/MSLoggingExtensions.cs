@@ -1,263 +1,301 @@
-﻿namespace Confluent.Kafka;
-
-using Microsoft.Extensions.Logging;
-
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Text;
-
-/// <summary>
-/// Extensions of Kafka components to integrate with <c>Microsoft.Extensions.Logging</c>.
-/// </summary>
-public static class MSLoggingExtensions
+﻿namespace Confluent.Kafka
 {
-    static readonly EventId PartitionsAssigned = new(10, nameof(PartitionsAssigned)),
-        PartitionsRevoked = new(11, nameof(PartitionsRevoked)),
-        PartitionsLost = new(12, nameof(PartitionsLost)),
-        OffsetsCommitted = new(20, nameof(OffsetsCommitted));
+    using Microsoft.Extensions.Logging;
+
+    using System;
+    using System.Collections;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
 
     /// <summary>
-    /// Configures internal logging for admin clients.
+    /// Extensions of Kafka components to integrate with <c>Microsoft.Extensions.Logging</c>.
     /// </summary>
-    /// <param name="builder">The client builder.</param>
-    /// <param name="factory">The logger factory.</param>
-    /// <returns>The same builder, for chaining.</returns>
-    public static AdminClientBuilder AddLogging(this AdminClientBuilder builder, ILoggerFactory factory)
+    public static class MSLoggingExtensions
     {
+        static readonly EventId PartitionsAssigned = new EventId(10, nameof(PartitionsAssigned)),
+            PartitionsRevoked = new EventId(11, nameof(PartitionsRevoked)),
+            PartitionsLost = new EventId(12, nameof(PartitionsLost)),
+            OffsetsCommitted = new EventId(20, nameof(OffsetsCommitted));
+
+        /// <summary>
+        /// Configures internal logging for admin clients.
+        /// </summary>
+        /// <param name="builder">The client builder.</param>
+        /// <param name="factory">The logger factory.</param>
+        /// <returns>The same builder, for chaining.</returns>
+        public static AdminClientBuilder AddLogging(this AdminClientBuilder builder, ILoggerFactory factory)
+        {
 #if NET7_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-        ArgumentNullException.ThrowIfNull(factory, nameof(factory));
+            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+            ArgumentNullException.ThrowIfNull(factory, nameof(factory));
 #else
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
-        if (factory == null) throw new ArgumentNullException(nameof(factory));
+            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
 #endif
 
-        var libLoggers = new ConcurrentDictionary<string, ILogger>();
-        var clientLogger = default(ILogger?);
+            var libLoggers = new ConcurrentDictionary<string, ILogger>();
+            var clientLogger = default(ILogger);
 
-        builder.SetLogHandler((x, y) => HandleLog(factory, libLoggers, y));
-        builder.SetErrorHandler((x, y) => HandleError(factory, ref clientLogger, x, y));
+            builder.SetLogHandler((x, y) => HandleLog(factory, libLoggers, y));
+            builder.SetErrorHandler((x, y) => HandleError(factory, ref clientLogger, x, y));
 
-        return builder;
-    }
+            return builder;
+        }
 
-    /// <summary>
-    /// Configures internal logging for consumers.
-    /// </summary>
-    /// <param name="builder">The consumer builder.</param>
-    /// <param name="factory">The logger factory.</param>
-    /// <returns>The same builder, for chaining.</returns>
-    public static ConsumerBuilder<TKey, TValue> AddLogging<TKey, TValue>(
-        this ConsumerBuilder<TKey, TValue> builder,
-        ILoggerFactory factory)
-    {
+        /// <summary>
+        /// Configures internal logging for consumers.
+        /// </summary>
+        /// <param name="builder">The consumer builder.</param>
+        /// <param name="factory">The logger factory.</param>
+        /// <returns>The same builder, for chaining.</returns>
+        public static ConsumerBuilder<TKey, TValue> AddLogging<TKey, TValue>(
+            this ConsumerBuilder<TKey, TValue> builder,
+            ILoggerFactory factory)
+        {
 #if NET7_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-        ArgumentNullException.ThrowIfNull(factory, nameof(factory));
+            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+            ArgumentNullException.ThrowIfNull(factory, nameof(factory));
 #else
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
-        if (factory == null) throw new ArgumentNullException(nameof(factory));
+            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
 #endif
 
-        var libLoggers = new ConcurrentDictionary<string, ILogger>();
-        var clientLogger = default(ILogger?);
+            var libLoggers = new ConcurrentDictionary<string, ILogger>();
+            var clientLogger = default(ILogger);
 
-        builder.SetLogHandler((x, y) => HandleLog(factory, libLoggers, y));
-        builder.SetErrorHandler((x, y) => HandleError(factory, ref clientLogger, x, y));
+            builder.SetLogHandler((x, y) => HandleLog(factory, libLoggers, y));
+            builder.SetErrorHandler((x, y) => HandleError(factory, ref clientLogger, x, y));
 
-        builder.SetPartitionsAssignedHandler(
-            (client, partitions) =>
-            {
-                clientLogger ??= factory.CreateLogger(client.GetType());
-                var offsets = partitions.Select(x => new TopicPartitionOffset(x, Offset.Unset));
-
-                LogEvent(
-                    clientLogger,
-                    LogLevel.Information,
-                    PartitionsAssigned,
-                    new("Kafka partitions assigned", client.Name, offsets));
-            });
-
-        builder.SetPartitionsRevokedHandler(
-            (client, offsets) =>
-            {
-                clientLogger ??= factory.CreateLogger(client.GetType());
-
-                LogEvent(
-                    clientLogger,
-                    LogLevel.Information,
-                    PartitionsRevoked,
-                    new("Kafka partitions revoked", client.Name, offsets));
-            });
-
-        builder.SetPartitionsLostHandler(
-            (client, offsets) =>
-            {
-                clientLogger ??= factory.CreateLogger(client.GetType());
-
-                LogEvent(
-                    clientLogger,
-                    LogLevel.Information,
-                    PartitionsLost,
-                    new("Kafka partitions lost", client.Name, offsets));
-            });
-
-        builder.SetOffsetsCommittedHandler(
-            (client, commit) =>
-            {
-                clientLogger ??= factory.CreateLogger(client.GetType());
-
-                if (commit.Error.IsError)
+            builder.SetPartitionsAssignedHandler(
+                (client, partitions) =>
                 {
-                    LogError(clientLogger, commit.Error, new("Kafka commit error", client.Name));
-                }
-                else
-                {
-                    foreach (var group in commit.Offsets.GroupBy(x => x.Error, x => x.TopicPartitionOffset))
+                    if (clientLogger == null)
                     {
-                        var offsets = group.Where(x => x.Offset != Offset.Unset);
+                        clientLogger = factory.CreateLogger(client.GetType());
+                    }
 
-                        if (group.Key.IsError)
+                    var offsets = partitions.Select(x => new TopicPartitionOffset(x, Offset.Unset));
+
+                    LogEvent(
+                        clientLogger,
+                        LogLevel.Information,
+                        PartitionsAssigned,
+                        new ClientLogValues("Kafka partitions assigned", client.Name, offsets));
+                });
+
+            builder.SetPartitionsRevokedHandler(
+                (client, offsets) =>
+                {
+                    if (clientLogger == null)
+                    {
+                        clientLogger = factory.CreateLogger(client.GetType());
+                    }
+
+                    LogEvent(
+                        clientLogger,
+                        LogLevel.Information,
+                        PartitionsRevoked,
+                        new ClientLogValues("Kafka partitions revoked", client.Name, offsets));
+                });
+
+            builder.SetPartitionsLostHandler(
+                (client, offsets) =>
+                {
+                    if (clientLogger == null)
+                    {
+                        clientLogger = factory.CreateLogger(client.GetType());
+                    }
+
+                    LogEvent(
+                        clientLogger,
+                        LogLevel.Information,
+                        PartitionsLost,
+                        new ClientLogValues("Kafka partitions lost", client.Name, offsets));
+                });
+
+            builder.SetOffsetsCommittedHandler(
+                (client, commit) =>
+                {
+                    if (clientLogger == null)
+                    {
+                        clientLogger = factory.CreateLogger(client.GetType());
+                    }
+
+                    if (commit.Error.IsError)
+                    {
+                        LogError(clientLogger, commit.Error, new ClientLogValues("Kafka commit error", client.Name));
+                    }
+                    else
+                    {
+                        foreach (var group in commit.Offsets.GroupBy(x => x.Error, x => x.TopicPartitionOffset))
                         {
-                            LogError(clientLogger, commit.Error, new("Kafka commit error", client.Name, offsets));
-                        }
-                        else
-                        {
-                            LogEvent(
-                                clientLogger,
-                                LogLevel.Information,
-                                OffsetsCommitted,
-                                new("Kafka offset commit", client.Name, offsets));
+                            var offsets = group.Where(x => x.Offset != Offset.Unset);
+
+                            if (group.Key.IsError)
+                            {
+                                LogError(
+                                    clientLogger,
+                                    commit.Error,
+                                    new ClientLogValues("Kafka commit error", client.Name, offsets));
+                            }
+                            else
+                            {
+                                LogEvent(
+                                    clientLogger,
+                                    LogLevel.Information,
+                                    OffsetsCommitted,
+                                    new ClientLogValues("Kafka offset commit", client.Name, offsets));
+                            }
                         }
                     }
-                }
-            });
+                });
 
-        return builder;
-    }
+            return builder;
+        }
 
-    /// <summary>
-    /// Configures internal logging for producers.
-    /// </summary>
-    /// <param name="builder">The producer builder.</param>
-    /// <param name="factory">The logger factory.</param>
-    /// <returns>The same builder, for chaining.</returns>
-    public static ProducerBuilder<TKey, TValue> AddLogging<TKey, TValue>(
-        this ProducerBuilder<TKey, TValue> builder,
-        ILoggerFactory factory)
-    {
+        /// <summary>
+        /// Configures internal logging for producers.
+        /// </summary>
+        /// <param name="builder">The producer builder.</param>
+        /// <param name="factory">The logger factory.</param>
+        /// <returns>The same builder, for chaining.</returns>
+        public static ProducerBuilder<TKey, TValue> AddLogging<TKey, TValue>(
+            this ProducerBuilder<TKey, TValue> builder,
+            ILoggerFactory factory)
+        {
 #if NET7_0_OR_GREATER
-        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-        ArgumentNullException.ThrowIfNull(factory, nameof(factory));
+            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+            ArgumentNullException.ThrowIfNull(factory, nameof(factory));
 #else
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
-        if (factory == null) throw new ArgumentNullException(nameof(factory));
+            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
 #endif
 
-        var libLoggers = new ConcurrentDictionary<string, ILogger>();
-        var clientLogger = default(ILogger?);
+            var libLoggers = new ConcurrentDictionary<string, ILogger>();
+            var clientLogger = default(ILogger);
 
-        builder.SetLogHandler((x, y) => HandleLog(factory, libLoggers, y));
-        builder.SetErrorHandler((x, y) => HandleError(factory, ref clientLogger, x, y));
+            builder.SetLogHandler((x, y) => HandleLog(factory, libLoggers, y));
+            builder.SetErrorHandler((x, y) => HandleError(factory, ref clientLogger, x, y));
 
-        return builder;
-    }
-
-    static void HandleLog(
-        ILoggerFactory factory,
-        ConcurrentDictionary<string, ILogger> libLoggers,
-        LogMessage message)
-    {
-        if (!libLoggers.TryGetValue(message.Facility, out ILogger? logger))
-        {
-            logger = factory.CreateLogger("rdkafka#" + message.Facility);
-            libLoggers[message.Facility] = logger;
+            return builder;
         }
 
-        var level = (LogLevel)message.LevelAs(LogLevelType.MicrosoftExtensionsLogging);
-        LogEvent(logger, level, eventId: default, new(message.Message, message.Name));
-    }
-
-    static void HandleError(
-        ILoggerFactory factory,
-        ref ILogger? clientLogger,
-        IClient client,
-        Error error)
-    {
-        clientLogger ??= factory.CreateLogger(client.GetType());
-        LogError(clientLogger, error, new("Kafka client error", client.Name));
-    }
-
-    static void LogEvent(ILogger logger, LogLevel level, EventId eventId, ClientLogValues values)
-    {
-        logger.Log(level, eventId, values, exception: null, (x, y) => x.ToString());
-    }
-
-    static void LogError(ILogger logger, Error error, ClientLogValues values)
-    {
-        logger.Log(
-            error.IsFatal ? LogLevel.Critical : LogLevel.Error,
-            eventId: default,
-            values,
-            exception: new KafkaException(error),
-            (x, y) => x.ToString());
-    }
-
-    readonly struct ClientLogValues(
-        string message,
-        string client,
-        IEnumerable<TopicPartitionOffset>? offsets = null) :
-        IReadOnlyList<KeyValuePair<string, object?>>
-    {
-        public int Count => offsets == null ? 1 : 2;
-
-        public KeyValuePair<string, object?> this[int index]
+        static void HandleLog(
+            ILoggerFactory factory,
+            ConcurrentDictionary<string, ILogger> libLoggers,
+            LogMessage message)
         {
-            get
+            if (!libLoggers.TryGetValue(message.Facility, out ILogger logger))
             {
-                return index switch
-                {
-                    0 => new("KafkaClient", client),
-                    1 => new("KafkaOffsets", offsets),
-                    _ => throw new ArgumentOutOfRangeException(nameof(index)),
-                };
+                logger = factory.CreateLogger("rdkafka#" + message.Facility);
+                libLoggers[message.Facility] = logger;
             }
+
+            var level = (LogLevel)message.LevelAs(LogLevelType.MicrosoftExtensionsLogging);
+            LogEvent(logger, level, eventId: default, new ClientLogValues(message.Message, message.Name));
         }
 
-        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
+        static void HandleError(
+            ILoggerFactory factory,
+            ref ILogger clientLogger,
+            IClient client,
+            Error error)
         {
-            for (var i = 0; i < this.Count;)
+            if (clientLogger == null)
             {
-                yield return this[i++];
+                clientLogger = factory.CreateLogger(client.GetType());
             }
+
+            LogError(clientLogger, error, new ClientLogValues("Kafka client error", client.Name));
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
+        static void LogEvent(ILogger logger, LogLevel level, EventId eventId, ClientLogValues values)
         {
-            return this.GetEnumerator();
+            logger.Log(level, eventId, values, exception: null, (x, y) => x.ToString());
         }
 
-        public override string ToString()
+        static void LogError(ILogger logger, Error error, ClientLogValues values)
         {
-            var builder = new StringBuilder()
-                .Append('[')
-                .Append(client)
-                .Append(']')
-                .Append(' ')
-                .Append(message);
+            logger.Log(
+                error.IsFatal ? LogLevel.Critical : LogLevel.Error,
+                eventId: default,
+                values,
+                exception: new KafkaException(error),
+                (x, y) => x.ToString());
+        }
 
-            if (offsets != null)
+        readonly struct ClientLogValues : IReadOnlyList<KeyValuePair<string, object>>
+        {
+            readonly string message;
+            readonly string client;
+            readonly IEnumerable<TopicPartitionOffset> offsets;
+
+            public ClientLogValues(
+                string message,
+                string client,
+                IEnumerable<TopicPartitionOffset> offsets = null)
             {
-                builder.AppendLine();
+                this.message = message;
+                this.client = client;
+                this.offsets = offsets;
+            }
 
-                foreach (var tpo in offsets)
+            public int Count => offsets == null ? 1 : 2;
+
+            public KeyValuePair<string, object> this[int index]
+            {
+                get
                 {
-                    builder.Append(' ', 2);
-                    builder.AppendLine(tpo.ToString());
+                    switch (index)
+                    {
+                        case 0:
+                            return new KeyValuePair<string, object>("KafkaClient", client);
+
+                        case 1:
+                            return new KeyValuePair<string, object>("KafkaOffsets", offsets);
+                    }
+
+                    throw new ArgumentOutOfRangeException(nameof(index));
                 }
             }
 
-            return builder.ToString();
+            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+            {
+                for (var i = 0; i < this.Count;)
+                {
+                    yield return this[i++];
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return this.GetEnumerator();
+            }
+
+            public override string ToString()
+            {
+                var builder = new StringBuilder()
+                    .Append('[')
+                    .Append(client)
+                    .Append(']')
+                    .Append(' ')
+                    .Append(message);
+
+                if (offsets != null)
+                {
+                    builder.AppendLine();
+
+                    foreach (var tpo in offsets)
+                    {
+                        builder.Append(' ', 2);
+                        builder.AppendLine(tpo.ToString());
+                    }
+                }
+
+                return builder.ToString();
+            }
         }
     }
 }

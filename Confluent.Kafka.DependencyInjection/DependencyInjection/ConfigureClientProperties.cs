@@ -1,48 +1,56 @@
-﻿namespace Confluent.Kafka.DependencyInjection;
-
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-
-sealed class ConfigureClientProperties(IConfiguration? configuration = null) :
-    IConfigureOptions<AdminClientConfig>,
-    IConfigureOptions<ConsumerConfig>,
-    IConfigureOptions<ProducerConfig>
+﻿namespace Confluent.Kafka.DependencyInjection
 {
-    public void Configure(AdminClientConfig options)
-    {
-        ApplyDefaults(options);
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Options;
 
-        if (configuration != null)
+    sealed class ConfigureClientProperties :
+        IConfigureOptions<AdminClientConfig>,
+        IConfigureOptions<ConsumerConfig>,
+        IConfigureOptions<ProducerConfig>
+    {
+        readonly IConfiguration configuration;
+
+        public ConfigureClientProperties(IConfiguration configuration = null)
         {
-            options.LoadFrom(configuration);
+            this.configuration = configuration;
         }
-    }
 
-    public void Configure(ConsumerConfig options)
-    {
-        ApplyDefaults(options);
-
-        if (configuration != null)
+        public void Configure(AdminClientConfig options)
         {
-            options.LoadFrom(configuration);
+            ApplyDefaults(options);
+
+            if (configuration != null)
+            {
+                options.LoadFrom(configuration);
+            }
         }
-    }
 
-    public void Configure(ProducerConfig options)
-    {
-        ApplyDefaults(options);
-
-        if (configuration != null)
+        public void Configure(ConsumerConfig options)
         {
-            options.LoadFrom(configuration);
+            ApplyDefaults(options);
+
+            if (configuration != null)
+            {
+                options.LoadFrom(configuration);
+            }
         }
-    }
 
-    static void ApplyDefaults(ClientConfig options)
-    {
-        if (string.IsNullOrEmpty(options.BootstrapServers))
+        public void Configure(ProducerConfig options)
         {
-            options.BootstrapServers = "localhost:9092";
+            ApplyDefaults(options);
+
+            if (configuration != null)
+            {
+                options.LoadFrom(configuration);
+            }
+        }
+
+        static void ApplyDefaults(ClientConfig options)
+        {
+            if (string.IsNullOrEmpty(options.BootstrapServers))
+            {
+                options.BootstrapServers = "localhost:9092";
+            }
         }
     }
 }
