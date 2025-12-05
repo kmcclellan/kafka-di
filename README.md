@@ -115,15 +115,18 @@ Once the client is configured, a common pattern for consuming is to implement a 
 ```c#
 class MyWorker(IConsumer<Ignore, MyType> consumer) : BackgroundService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         Console.WriteLine("Consumer service started.");
 
         // ConsumeAllAsync() is an extension provided by this library.
-        await foreach (var result in consumer.ConsumeAllAsync().WithCancellation(stoppingToken))
-        {
-            Console.WriteLine($"Message {result.TopicPartitionOffset} processed.");
-        }
+        return consumer.ConsumeAllAsync(
+            x =>
+            {
+                Console.WriteLine($"Message {x.TopicPartitionOffset} processed.");
+                return ValueTask.CompletedTask;
+            },
+            cancellationToken: stoppingToken);
     }
 }
 ```

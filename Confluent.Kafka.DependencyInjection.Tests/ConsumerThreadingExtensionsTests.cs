@@ -1,181 +1,176 @@
 ﻿namespace Confluent.Kafka.DependencyInjection.Tests;
 
+using Microsoft.Extensions.Time.Testing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 [TestClass]
-public sealed class ConsumerThreadingExtensionsTests
+public sealed class ConsumerThreadingExtensionsTests(TestContext context)
 {
     [TestMethod]
-    [DataRow(false, false)]
-    [DataRow(false, true)]
-    [DataRow(true, false)]
-    [DataRow(true, true)]
-    public async Task ConsumeAsyncPropagatesResult(bool enumerate, bool wait)
+    [DataRow(10, 1, 1)]
+    [DataRow(24, 1, 4)]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task InvokesProcessFuncForAllMessages(
+        int totalMessages,
+        int gapMillis,
+        int parallelism,
+        TimeProvider? time = null)
     {
-        var expected = new ConsumeResult<object?, object?>();
+        time ??= TimeProvider.System;
 
-        var consumer = new FakeConsumer(
-            (timeout, cancellationToken) =>
+        using var stopping = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+
+        var pending = new ConcurrentQueue<int>();
+        var processed = new ConcurrentQueue<ConsumeResult<int?, int>>();
+        var committed = new ConcurrentQueue<TopicPartitionOffset>();
+
+        var broker = new FakeConsumer<int?, int>(
+            timeout =>
             {
-                if (timeout == TimeSpan.Zero && wait)
+                if (timeout != TimeSpan.Zero)
                 {
-                    return null;
+                    throw new Exception("Consume should not block.");
                 }
 
-                return expected;
-            });
-
-        var actual = await ConsumeOne(consumer, enumerate);
-        Assert.AreEqual(expected, actual, "Unexpected consume result.");
-    }
-
-    [TestMethod]
-    [DataRow(false, false)]
-    [DataRow(false, true)]
-    [DataRow(true, false)]
-    [DataRow(true, true)]
-    public async Task ConsumeAsyncPropagatesException(bool enumerate, bool wait)
-    {
-        var expected = new ConsumeException(new(), new(ErrorCode.Local_Application));
-
-        var consumer = new FakeConsumer(
-            (timeout, cancellationToken) =>
-            {
-                if (timeout == TimeSpan.Zero && wait)
+                if (pending.TryDequeue(out var id))
                 {
-                    return null;
+                    if (id == totalMessages)
+                    {
+                        stopping.Cancel();
+                    }
+
+                    var sample = Random.Shared.Next(parallelism);
+
+                    return new ConsumeResult<int?, int>
+                    {
+                        Topic = "test-topic",
+                        Partition = 99,
+                        Offset = id,
+                        LeaderEpoch = 9,
+                        Message = new()
+                        {
+                            Key = sample == 0 ? default(int?) : sample,
+                            Value = id,
+                        },
+                    };
                 }
 
-                throw expected;
-            });
+                return null;
+            },
+            committed.Enqueue);
 
-        var actual = await Assert.ThrowsAsync<ConsumeException>(() => ConsumeOne(consumer, enumerate));
-        Assert.AreEqual(expected, actual, "Unexpected consume exception.");
-    }
+        var concurrency = 0;
+        var keyConcurrency = new ConcurrentDictionary<int, byte>();
 
-    [TestMethod]
-    [DataRow(false)]
-    [DataRow(true)]
-    public async Task ConsumeAsyncPropagatesCancellation(bool enumerate)
-    {
-        var cancellation = new CancellationTokenSource();
-
-        var consumer = new FakeConsumer(
-            (timeout, cancellationToken) =>
+        var processTask = broker.ConsumeAllAsync(
+            async result =>
             {
-                if (timeout == TimeSpan.Zero)
+                if (Interlocked.Increment(ref concurrency) > parallelism)
                 {
-                    return null;
+                    throw new Exception("Parallelism exceeded.");
                 }
 
-                cancellation.Cancel();
-                throw new OperationCanceledException(cancellationToken);
-            });
-
-        var actual = await Assert.ThrowsAsync<OperationCanceledException>(
-            () => ConsumeOne(consumer, enumerate, cancellation.Token));
-
-        Assert.AreEqual(cancellation.Token, actual.CancellationToken, "Unexpected cancellation token.");
-    }
-
-    [TestMethod]
-    [DataRow(false)]
-    [DataRow(true)]
-    public async Task ConsumeAsyncChecksForABufferedMessage(bool enumerate)
-    {
-        var callingThreadId = Environment.CurrentManagedThreadId;
-        var capturedTimeout = default(TimeSpan?);
-        var capturedThreadId = default(int?);
-
-        var consumer = new FakeConsumer(
-            (timeout, cancellationToken) =>
-            {
-                capturedTimeout ??= timeout;
-                capturedThreadId ??= Environment.CurrentManagedThreadId;
-
-                return new();
-            });
-
-        await ConsumeOne(consumer, enumerate);
-
-        Assert.AreEqual(TimeSpan.Zero, capturedTimeout, "Consume(...) received an unexpected timeout.");
-        Assert.AreEqual(callingThreadId, capturedThreadId, "Consume(...) not invoked on the calling thread.");
-    }
-
-    [TestMethod]
-    [DataRow(false)]
-    [DataRow(true)]
-    public async Task ConsumeAsyncWaitsOnBackgroundThread(bool enumerate)
-    {
-        var callingThreadId = Environment.CurrentManagedThreadId;
-        var capturedThreadId = default(int?);
-        var capturedThreadIsPooled = default(bool?);
-
-        var consumer = new FakeConsumer(
-            (timeout, cancellationToken) =>
-            {
-                if (timeout == TimeSpan.Zero)
+                if (result.Message.Key != null && !keyConcurrency.TryAdd(result.Message.Key.Value, default))
                 {
-                    return null;
+                    throw new Exception("Key concurrency violated.");
                 }
 
-                capturedThreadId ??= Environment.CurrentManagedThreadId;
-                capturedThreadIsPooled ??= Thread.CurrentThread.IsThreadPoolThread;
+                var interval = -Math.Log(Random.Shared.NextDouble()) * parallelism * gapMillis;
 
-                return new();
-            });
-
-        await ConsumeOne(consumer, enumerate);
-
-        Assert.AreNotEqual(callingThreadId, capturedThreadId, "Consume(...) invoked on calling thread.");
-        Assert.IsFalse(capturedThreadIsPooled, "Consume(...) invoked on thread pool.");
-    }
-
-    [TestMethod]
-    public async Task ConsumeAllAsyncReusesBackgroundThread()
-    {
-        var capturedThreadIds = new HashSet<int>();
-
-        var consumer = new FakeConsumer(
-            (timeout, cancellationToken) =>
-            {
-                if (timeout == TimeSpan.Zero)
+                if (interval >= 1)
                 {
-                    return null;
+                    await Task.Delay(TimeSpan.FromMilliseconds(interval), time, context.CancellationToken);
                 }
 
-                capturedThreadIds.Add(Environment.CurrentManagedThreadId);
+                processed.Enqueue(result);
+                Interlocked.Decrement(ref concurrency);
 
-                return new();
-            });
+                if (result.Message.Key != null)
+                {
+                    keyConcurrency.TryRemove(result.Message.Key.Value, out _);
+                }
+            },
+            parallelism,
+            storeOffsets: true,
+            time: time,
+            cancellationToken: stopping.Token);
 
-        await using var enumerator = consumer.ConsumeAllAsync().GetAsyncEnumerator();
+        var emitTask = Task.Run(
+            async () =>
+            {
+                for (var index = 1; index <= totalMessages; index++)
+                {
+                    var delay = -Math.Log(Random.Shared.NextDouble()) * gapMillis;
 
-        for (var i = 0; i < 3; i++)
+                    if (delay >= 1)
+                    {
+                        await Task.Delay(TimeSpan.FromMilliseconds(delay), time, context.CancellationToken);
+                    }
+
+                    pending.Enqueue(index);
+                }
+            },
+            context.CancellationToken);
+
+        try
         {
-            await enumerator.MoveNextAsync();
+            await Task.WhenAll(processTask, emitTask);
+        }
+        catch (OperationCanceledException) when (!context.CancellationToken.IsCancellationRequested)
+        {
         }
 
-        Assert.AreEqual(1, capturedThreadIds.Count, "Consume(...) invoked on multiple threads.");
-    }
+        CollectionAssert.AreEquivalent(
+            Enumerable.Range(1, totalMessages).ToList(),
+            processed.Select(x => x.Message.Value).ToList(),
+            "Processed values did not match.");
 
-    static async Task<ConsumeResult<object?, object?>> ConsumeOne(
-        IConsumer<object?, object?> consumer,
-        bool enumerate,
-        CancellationToken cancellationToken = default)
-    {
-        if (enumerate)
+        foreach (var keyGroup in processed.GroupBy(x => x.Message.Key, x => x.Message.Value))
         {
-            await using var enumerator = consumer.ConsumeAllAsync().GetAsyncEnumerator(cancellationToken);
-            await enumerator.MoveNextAsync();
-            return enumerator.Current;
+            if (keyGroup.Key != null)
+            {
+                CollectionAssert.AreEqual(
+                    keyGroup.OrderBy(x => x).ToList(),
+                    keyGroup.ToList(),
+                    "Messages processed out of order");
+            }
         }
 
-        return await consumer.ConsumeAsync(cancellationToken);
+        CollectionAssert.AreEqual(
+            Enumerable.Range(2, totalMessages).ToList(),
+            committed.Select(x => (int)x.Offset).ToList(),
+            "Messages committed out of order");
+    }
+
+    [TestMethod]
+    [DataRow(100, 100, 10)]
+    [DataRow(10_000, 10, 10)]
+    [DataRow(1_000, 10, 100)]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public Task InvokesProcessFuncForAllMessages_WithFakeTime(int totalMessages, int gapMillis, int parallelism)
+    {
+        var time = new FakeTimeProvider();
+        var processTask = InvokesProcessFuncForAllMessages(totalMessages, gapMillis, parallelism, time);
+
+        var timeTask = Task.Run(
+            async () =>
+            {
+                while (!processTask.IsCompleted)
+                {
+                    await Task.Yield();
+                    time.Advance(TimeSpan.FromMilliseconds(gapMillis));
+                }
+
+                context.WriteLine("Time advanced {0}.", time.GetUtcNow() - time.Start);
+            },
+            context.CancellationToken);
+
+        return Task.WhenAll(processTask, timeTask);
     }
 }

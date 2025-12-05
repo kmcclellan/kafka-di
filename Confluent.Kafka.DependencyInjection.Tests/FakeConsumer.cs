@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-sealed class FakeConsumer(Func<TimeSpan, CancellationToken, ConsumeResult<object?, object?>?> consumeFunc) :
-    IConsumer<object?, object?>
+sealed class FakeConsumer<TKey, TValue>(
+    Func<TimeSpan, ConsumeResult<TKey, TValue>?> consumeFunc,
+    Action<TopicPartitionOffset>? storeAction = null) :
+    IConsumer<TKey, TValue>
 {
     public string MemberId => throw new NotImplementedException();
 
@@ -59,7 +61,7 @@ sealed class FakeConsumer(Func<TimeSpan, CancellationToken, ConsumeResult<object
         throw new NotImplementedException();
     }
 
-    public void Commit(ConsumeResult<object?, object?> result)
+    public void Commit(ConsumeResult<TKey, TValue> result)
     {
         throw new NotImplementedException();
     }
@@ -74,19 +76,19 @@ sealed class FakeConsumer(Func<TimeSpan, CancellationToken, ConsumeResult<object
         throw new NotImplementedException();
     }
 
-    public ConsumeResult<object?, object?>? Consume(int millisecondsTimeout)
+    public ConsumeResult<TKey, TValue>? Consume(int millisecondsTimeout)
     {
-        return consumeFunc(TimeSpan.FromMilliseconds(millisecondsTimeout), default);
+        return consumeFunc(TimeSpan.FromMilliseconds(millisecondsTimeout));
     }
 
-    public ConsumeResult<object?, object?>? Consume(CancellationToken cancellationToken = default)
+    public ConsumeResult<TKey, TValue>? Consume(CancellationToken cancellationToken = default)
     {
-        return consumeFunc(Timeout.InfiniteTimeSpan, cancellationToken);
+        return consumeFunc(Timeout.InfiniteTimeSpan);
     }
 
-    public ConsumeResult<object?, object?>? Consume(TimeSpan timeout)
+    public ConsumeResult<TKey, TValue>? Consume(TimeSpan timeout)
     {
-        return consumeFunc(timeout, default);
+        return consumeFunc(timeout);
     }
 
     public WatermarkOffsets GetWatermarkOffsets(TopicPartition topicPartition)
@@ -144,14 +146,14 @@ sealed class FakeConsumer(Func<TimeSpan, CancellationToken, ConsumeResult<object
         throw new NotImplementedException();
     }
 
-    public void StoreOffset(ConsumeResult<object?, object?> result)
+    public void StoreOffset(ConsumeResult<TKey, TValue> result)
     {
-        throw new NotImplementedException();
+        storeAction?.Invoke(new(result.Topic, result.Partition, result.Offset + 1, result.LeaderEpoch));
     }
 
     public void StoreOffset(TopicPartitionOffset offset)
     {
-        throw new NotImplementedException();
+        storeAction?.Invoke(offset);
     }
 
     public void Subscribe(IEnumerable<string> topics)

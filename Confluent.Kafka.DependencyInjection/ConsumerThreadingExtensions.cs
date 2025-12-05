@@ -1,6 +1,7 @@
 ﻿namespace Confluent.Kafka
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -10,21 +11,24 @@
     /// </summary>
     public static class ConsumerThreadingExtensions
     {
+        static readonly TimeSpan PollMinDelay = TimeSpan.FromMilliseconds(10),
+            PollMaxDelay = TimeSpan.FromMilliseconds(160);
+
         /// <summary>
         /// Consumes the next message/event asynchronously.
         /// </summary>
         /// <remarks>
-        /// This implementation avoids unnecessary allocations and will not block on the thread pool.
-        /// <para/>
-        /// Prefer <see cref="ConsumeAllAsync{TKey, TValue}(IConsumer{TKey, TValue})"/> to reuse threading resources.
+        /// This implementation avoids unnecessary allocations and thread blocking.
         /// </remarks>
         /// <typeparam name="TKey">The consumer key type.</typeparam>
         /// <typeparam name="TValue">The consumer value type.</typeparam>
         /// <param name="consumer">The Kafka consumer.</param>
+        /// <param name="time">A time provider for polling delays, or <see langword="null"/> to use system time.</param>
         /// <param name="cancellationToken">A token for cancellation.</param>
         /// <returns>A task for the consume result.</returns>
-        public static ValueTask<ConsumeResult<TKey, TValue>> ConsumeAsync<TKey, TValue>(
+        public static async ValueTask<ConsumeResult<TKey, TValue>> ConsumeAsync<TKey, TValue>(
             this IConsumer<TKey, TValue> consumer,
+            TimeProvider time = null,
             CancellationToken cancellationToken = default)
         {
 #if NET7_0_OR_GREATER
@@ -33,244 +37,453 @@
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
 #endif
 
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var result = consumer.Consume(millisecondsTimeout: 0);
+            cancellationToken.ThrowIfCancellationRequested();
 
-                if (result != null)
+            ConsumeResult<TKey, TValue> result;
+            var delay = PollMinDelay;
+
+            while ((result = consumer.Consume(millisecondsTimeout: 0)) == null)
+            {
+                if (time == null)
                 {
-                    return new ValueTask<ConsumeResult<TKey, TValue>>(result);
+                    time = TimeProvider.System;
                 }
 
-                var task = Task.Factory.StartNew(
-                    obj =>
-                    {
-                        var (csmr, ct) = (Tuple<IConsumer<TKey, TValue>, CancellationToken>)obj;
-                        return csmr.Consume(ct) ?? throw new InvalidOperationException("Consumed a null result.");
-                    },
-                    Tuple.Create(consumer, cancellationToken),
-                    cancellationToken,
-                    TaskCreationOptions.LongRunning | TaskCreationOptions.RunContinuationsAsynchronously,
-                    TaskScheduler.Default);
+                await time.Delay(delay, cancellationToken).ConfigureAwait(false);
 
-                return new ValueTask<ConsumeResult<TKey, TValue>>(task);
+                if (delay < PollMaxDelay)
+                {
+                    delay = new TimeSpan(delay.Ticks * 2);
+                }
             }
-#pragma warning disable CA1031 // Exceptions propagated through tasks.
-            catch (Exception exception)
-#pragma warning restore CA1031
-            {
-                return GetFaultedTask<ConsumeResult<TKey, TValue>>(exception, cancellationToken);
-            }
+
+            return result;
         }
 
         /// <summary>
-        /// Creates an enumerable of messages/events for asynchronous iteration.
+        /// Consumes messages indefinitely by invoking the given delegate.
         /// </summary>
-        /// <remarks>This implementation avoids unnecessary allocations and will not block on the thread pool.</remarks>
+        /// <remarks>
+        /// Messages with the same key are processed sequentially regardless of parallelism.
+        /// </remarks>
         /// <typeparam name="TKey">The consumer key type.</typeparam>
         /// <typeparam name="TValue">The consumer value type.</typeparam>
         /// <param name="consumer">The Kafka consumer.</param>
-        /// <returns>The consume result enumerable.</returns>
-        public static IAsyncEnumerable<ConsumeResult<TKey, TValue>> ConsumeAllAsync<TKey, TValue>(
-            this IConsumer<TKey, TValue> consumer)
+        /// <param name="processFunc">The delegate to process each result.</param>
+        /// <param name="maxDegreeOfParallelism">The maximum number of messages to process concurrently.</param>
+        /// <param name="storeOffsets">Whether to store offsets manually for processed messages.</param>
+        /// <param name="keyComparer">A comparer for message keys, or <see langword="null"/> to use a default.</param>
+        /// <param name="time">A time provider for polling delays, or <see langword="null"/> to use system time.</param>
+        /// <param name="cancellationToken">A token for cancellation.</param>
+        /// <returns>A task for the consume result.</returns>
+        public static Task ConsumeAllAsync<TKey, TValue>(
+            this IConsumer<TKey, TValue> consumer,
+            Func<ConsumeResult<TKey, TValue>, ValueTask> processFunc,
+            int maxDegreeOfParallelism = 1,
+            bool storeOffsets = false,
+            IEqualityComparer<TKey> keyComparer = null,
+            TimeProvider time = null,
+            CancellationToken cancellationToken = default)
         {
 #if NET7_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(consumer, nameof(consumer));
+            ArgumentNullException.ThrowIfNull(processFunc, nameof(processFunc));
 #else
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+            if (processFunc == null) throw new ArgumentNullException(nameof(processFunc));
 #endif
 
-            return new ConsumerEnumerable<TKey, TValue>(consumer);
-        }
-
-        static ValueTask<T> GetFaultedTask<T>(
-            Exception exception,
-            CancellationToken cancellationToken)
-        {
-            if (exception is OperationCanceledException cancelException &&
-                cancelException.CancellationToken == cancellationToken)
+            if (maxDegreeOfParallelism < 1)
             {
-
-#if NET5_0_OR_GREATER
-                return ValueTask.FromCanceled<T>(cancellationToken);
-#else
-                return new ValueTask<T>(Task.FromCanceled<T>(cancellationToken));
-#endif
+                throw new ArgumentOutOfRangeException(
+                    nameof(maxDegreeOfParallelism),
+                    maxDegreeOfParallelism,
+                    $"parallelism ('{maxDegreeOfParallelism}') must be greater than or equal to one.");
             }
 
-#if NET5_0_OR_GREATER
-            return ValueTask.FromException<T>(exception);
-#else
-            return new ValueTask<T>(Task.FromException<T>(exception));
-#endif
-        }
-
-        sealed class ConsumerEnumerable<TKey, TValue> :
-            IAsyncEnumerable<ConsumeResult<TKey, TValue>>
-        {
-            readonly IConsumer<TKey, TValue> consumer;
-
-            public ConsumerEnumerable(IConsumer<TKey, TValue> consumer)
+            if (cancellationToken.IsCancellationRequested)
             {
-                this.consumer = consumer;
+                return Task.FromCanceled(cancellationToken);
             }
 
-            public IAsyncEnumerator<ConsumeResult<TKey, TValue>> GetAsyncEnumerator(
-                CancellationToken cancellationToken = default)
+            if (maxDegreeOfParallelism == 1)
             {
-                return new ConsumerEnumerator<TKey, TValue>(consumer, cancellationToken);
-            }
-        }
-
-        sealed class ConsumerEnumerator<TKey, TValue> : IAsyncEnumerator<ConsumeResult<TKey, TValue>>
-        {
-            const int IDLE = 0, ACTIVE = 1, DISPOSED = 2;
-
-            readonly IConsumer<TKey, TValue> consumer;
-            readonly CancellationToken cancellationToken;
-            readonly ManualResetEvent waitGate = new ManualResetEvent(initialState: false);
-            readonly Task waitTask;
-
-            volatile ConsumeResult<TKey, TValue> current;
-            volatile TaskCompletionSource<bool> waitResult;
-            volatile int status;
-
-            public ConsumerEnumerator(IConsumer<TKey, TValue> consumer, CancellationToken cancellationToken)
-            {
-                this.consumer = consumer;
-                this.cancellationToken = cancellationToken;
-
-                // Use a background thread so we don't block on the thread pool.
-                waitTask = Task.Factory.StartNew(
-                    WaitLoop,
-                    CancellationToken.None,
-                    TaskCreationOptions.LongRunning,
-                    TaskScheduler.Default);
+                return ConsumeSequential();
             }
 
-            public ConsumeResult<TKey, TValue> Current
+            var totalInFlight = 1;
+            var completion = new TaskCompletionSource<byte>();
+            var exceptions = new ConcurrentBag<Exception>();
+
+            if (keyComparer == null)
             {
-                get
+                if (ByteComparer.Instance is IEqualityComparer<TKey> byteComparer)
                 {
-                    var current = this.current;
-
-#if NET7_0_OR_GREATER
-                    ObjectDisposedException.ThrowIf(status == DISPOSED, this);
-#else
-                    if (status == DISPOSED) throw new ObjectDisposedException(GetType().FullName);
-#endif
-
-                    return current ?? throw new InvalidOperationException("Move has not occurred.");
+                    keyComparer = byteComparer;
+                }
+                else
+                {
+                    keyComparer = EqualityComparer<TKey>.Default;
                 }
             }
 
-            public ValueTask<bool> MoveNextAsync()
-            {
-                switch (Interlocked.CompareExchange(ref status, ACTIVE, IDLE))
-                {
-                    case ACTIVE:
-                        throw new InvalidOperationException("Move is already in progress.");
+            var buffer = new ConsumeBuffer<TKey, TValue>(
+                maxDegreeOfParallelism,
+                keyComparer);
 
-                    case DISPOSED:
-                        throw new ObjectDisposedException(GetType().FullName);
-                }
+            StartPolling();
 
-                try
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-#pragma warning disable CA1849 // Fast path: consume a buffered message (does not block).
-                    current = consumer.Consume(millisecondsTimeout: 0);
-#pragma warning restore CA1849
-
-                    if (current != null)
-                    {
-                        status = IDLE;
-                        return new ValueTask<bool>(true);
-                    }
-
-                    var waitResult = this.waitResult = new TaskCompletionSource<bool>(
-                        TaskCreationOptions.RunContinuationsAsynchronously);
-
-                    waitGate.Set();
-
-                    return new ValueTask<bool>(waitResult.Task);
-                }
-#pragma warning disable CA1031 // Exceptions propagated through tasks.
-                catch (Exception exception)
-#pragma warning restore CA1031
-                {
-                    status = IDLE;
-                    return GetFaultedTask<bool>(exception, cancellationToken);
-                }
-            }
-
-            public async ValueTask DisposeAsync()
-            {
-                switch (Interlocked.CompareExchange(ref status, DISPOSED, IDLE))
-                {
-                    case ACTIVE:
-                        throw new InvalidOperationException("Move is still in progress.");
-
-                    case IDLE:
-                        waitGate.Set();
-                        break;
-                }
-
-                await waitTask.ConfigureAwait(false);
-                waitGate.Dispose();
-            }
-
-            void WaitLoop()
+            async Task ConsumeSequential()
             {
                 while (true)
                 {
-                    waitGate.WaitOne();
+                    var message = await ConsumeAsync(consumer, time, cancellationToken).ConfigureAwait(false);
+                    await processFunc(message).ConfigureAwait(false);
 
-                    if (status == DISPOSED)
+                    if (storeOffsets)
                     {
-                        break;
+                        consumer.StoreOffset(message);
                     }
+                }
+            }
 
-                    waitGate.Reset();
-
-                    var waitResult = this.waitResult;
-                    this.waitResult = null;
+#pragma warning disable CA1031 // Propagate exceptions through tasks.
+            async void StartPolling()
+            {
+                while (true)
+                {
+                    var message = default(ConsumeResult<TKey, TValue>);
 
                     try
                     {
-                        // May block for extended periods.
-                        current = consumer.Consume(cancellationToken) ??
-                            throw new InvalidOperationException("Consumed a null result.");
+                        message = await ConsumeAsync(consumer, time, cancellationToken).ConfigureAwait(false);
                     }
-#pragma warning disable CA1031 // Exceptions propagated through tasks.
-                    catch (Exception exception)
-#pragma warning restore CA1031
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
-                        status = IDLE;
+                    }
+                    catch (Exception exception)
+                    {
+                        exceptions.Add(exception);
+                    }
 
-                        if (exception is OperationCanceledException cancelException &&
-                            cancelException.CancellationToken == cancellationToken)
+                    if (message != null)
+                    {
+                        var index = buffer.TryStart(message);
+                        var incremented = Interlocked.Increment(ref totalInFlight);
+
+                        if (index != -1)
                         {
-#if NET5_0_OR_GREATER
-                            waitResult.SetCanceled(this.cancellationToken);
-#else
-                            waitResult.SetCanceled();
-#endif
-
-                            break;
+                            ProcessMessage(index);
                         }
 
-                        waitResult.SetException(exception);
-                        continue;
+                        if (incremented > maxDegreeOfParallelism)
+                        {
+                            // Let the next completing message resume.
+                            break;
+                        }
                     }
 
-                    status = IDLE;
-                    waitResult.SetResult(true);
+                    if (cancellationToken.IsCancellationRequested || !exceptions.IsEmpty)
+                    {
+                        if (Interlocked.Decrement(ref totalInFlight) == 0)
+                        {
+                            Complete();
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            async void ProcessMessage(int index)
+            {
+                try
+                {
+                    await processFunc(buffer[index]).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    exceptions.Add(exception);
                 }
 
-                current = null;
+                var nextToProcess = buffer.MarkProcessed(index, out var commit);
+
+                if (nextToProcess != -1)
+                {
+                    ProcessMessage(nextToProcess);
+                }
+
+                if (commit)
+                {
+                    int decremented;
+
+                    do
+                    {
+                        if (storeOffsets && exceptions.IsEmpty)
+                        {
+                            try
+                            {
+                                consumer.StoreOffset(buffer[index]);
+                            }
+                            catch (Exception exception)
+                            {
+                                exceptions.Add(exception);
+                            }
+                        }
+
+                        index = buffer.MarkFinished();
+                        decremented = Interlocked.Decrement(ref totalInFlight);
+
+                        if (decremented == maxDegreeOfParallelism)
+                        {
+                            if (cancellationToken.IsCancellationRequested || !exceptions.IsEmpty)
+                            {
+                                decremented = Interlocked.Decrement(ref totalInFlight);
+                            }
+                            else
+                            {
+                                StartPolling();
+                            }
+                        }
+                    }
+                    while (index != -1);
+
+                    if (decremented == 0)
+                    {
+                        Complete();
+                    }
+                }
+            }
+#pragma warning restore CA1031
+
+            void Complete()
+            {
+                if (exceptions.IsEmpty)
+                {
+#if NET5_0_OR_GREATER
+                    completion.SetCanceled(cancellationToken);
+#else
+                    completion.SetCanceled();
+#endif
+                }
+                else
+                {
+                    completion.SetException(exceptions);
+                }
+            }
+
+            return completion.Task;
+        }
+
+        /// <summary>
+        /// A queue supporting concurrency, indexed access, and key-based processing constraints.
+        /// </summary>
+        /// <typeparam name="TKey">The consumer key type.</typeparam>
+        /// <typeparam name="TValue">The consumer value type.</typeparam>
+        sealed class ConsumeBuffer<TKey, TValue>
+        {
+            readonly IEqualityComparer<TKey> keyComparer;
+            readonly ConsumeResult<TKey, TValue>[] results;
+            readonly int?[] hashes;
+            readonly bool[] statuses;
+
+            int head, tail, count;
+
+            public ConsumeBuffer(int size, IEqualityComparer<TKey> keyComparer)
+            {
+                this.keyComparer = keyComparer;
+                results = new ConsumeResult<TKey, TValue>[size];
+                statuses = new bool[size];
+                hashes = new int?[size];
+            }
+
+            public ConsumeResult<TKey, TValue> this[int index] => results[index];
+
+            /// <summary>
+            /// Stores the result and determines if processing may start.
+            /// </summary>
+            /// <param name="result">The result.</param>
+            /// <returns>The index of the result within the buffer, or <c>-1</c> if processing is blocked.</returns>
+            public int TryStart(ConsumeResult<TKey, TValue> result)
+            {
+                var index = tail;
+                results[index] = result;
+                statuses[index] = false;
+
+                hashes[index] = result.Message != null && result.Message.Key != null
+                    ? keyComparer.GetHashCode(result.Message.Key)
+                    : default(int?);
+
+                lock (results)
+                {
+                    tail++;
+
+                    if (tail == results.Length)
+                    {
+                        tail = 0;
+                    }
+
+                    count++;
+
+                    if (hashes[index] != null)
+                    {
+                        var prev = index;
+
+                        while (prev != head)
+                        {
+                            prev--;
+
+                            if (prev == -1)
+                            {
+                                prev = results.Length - 1;
+                            }
+
+                            if (KeysMatch(prev, index))
+                            {
+                                if (!statuses[prev])
+                                {
+                                    return -1;
+                                }
+
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                return index;
+            }
+
+            /// <summary>
+            /// Updates the status of a processed result and determines if it can be committed,
+            /// as well as the next result to process.
+            /// </summary>
+            /// <param name="index">The index of the processed result.</param>
+            /// <param name="commit">Whether the processed result is safe to commit.</param>
+            /// <returns>The index of the next result ready for processing, or <c>-1</c> if none exists.</returns>
+            public int MarkProcessed(int index, out bool commit)
+            {
+                lock (results)
+                {
+                    statuses[index] = true;
+                    commit = index == head;
+
+                    if (hashes[index] != null)
+                    {
+                        var next = index;
+
+                        while (true)
+                        {
+                            next++;
+
+                            if (next == results.Length)
+                            {
+                                next = 0;
+                            }
+
+                            if (next == tail)
+                            {
+                                break;
+                            }
+
+                            if (KeysMatch(next, index))
+                            {
+                                return next;
+                            }
+                        }
+                    }
+                }
+
+                return -1;
+            }
+
+            /// <summary>
+            /// Removes a result from the head of the buffer and determines the next result to remove.
+            /// </summary>
+            /// <returns>The index of the next result ready for removal, or <c>-1</c> if none exists.</returns>
+            public int MarkFinished()
+            {
+                results[head] = null;
+
+                lock (results)
+                {
+                    head++;
+
+                    if (head == results.Length)
+                    {
+                        head = 0;
+                    }
+
+                    count--;
+
+                    if (count > 0 && statuses[head])
+                    {
+                        return head;
+                    }
+                }
+
+                return -1;
+            }
+
+            bool KeysMatch(int x, int y)
+            {
+                var h1 = hashes[x];
+                var h2 = hashes[y];
+
+                if (h1 == null || h2 == null || h1 != h2)
+                {
+                    return false;
+                }
+
+                return keyComparer.Equals(results[x].Message.Key, results[y].Message.Key);
+            }
+        }
+
+        private sealed class ByteComparer : IEqualityComparer<byte[]>
+        {
+            private ByteComparer()
+            {
+            }
+
+            public static ByteComparer Instance { get; } = new ByteComparer();
+
+            public bool Equals(byte[] x, byte[] y)
+            {
+                if (x == y)
+                {
+                    return true;
+                }
+
+                if (x == null || y == null)
+                {
+                    return false;
+                }
+
+                return x.AsSpan().SequenceEqual(y);
+            }
+
+            public int GetHashCode(byte[] obj)
+            {
+#if NET6_0_OR_GREATER
+                var code = new HashCode();
+                code.AddBytes(obj);
+
+                return code.ToHashCode();
+#else
+                // https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+                const int fnvPrime = 16777619;
+                const int fnvOffsetBasis = unchecked((int)2166136261);
+
+                var hash = fnvOffsetBasis;
+
+                foreach (var val in obj)
+                {
+                    hash *= fnvPrime;
+                    hash ^= val;
+                }
+
+                return hash;
+#endif
             }
         }
     }
