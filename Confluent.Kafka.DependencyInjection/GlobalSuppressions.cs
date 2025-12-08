@@ -22,16 +22,16 @@ using System.Diagnostics.CodeAnalysis;
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Scope = "type",
-    Target = "~T:Confluent.Kafka.DependencyInjection.ScopedProducer`2")]
+    Target = "~T:Confluent.Kafka.DependencyInjection.GlobalProducer`2")]
 
 [assembly: SuppressMessage(
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Scope = "type",
-    Target = "~T:Confluent.Kafka.DependencyInjection.ScopedConsumer`2")]
+    Target = "~T:Confluent.Kafka.DependencyInjection.GlobalConsumer`2")]
 
 [assembly: SuppressMessage(
     "Performance",
     "CA1812:Avoid uninstantiated internal classes",
     Scope = "type",
-    Target = "~T:Confluent.Kafka.DependencyInjection.ScopedAdminClient")]
+    Target = "~T:Confluent.Kafka.DependencyInjection.GlobalAdminClient")]

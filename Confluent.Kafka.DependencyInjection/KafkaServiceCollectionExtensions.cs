@@ -26,9 +26,9 @@ namespace Confluent.Kafka
             if (services == null) throw new ArgumentNullException(nameof(services));
 #endif
 
-            services.TryAddSingleton(typeof(IProducer<,>), typeof(ScopedProducer<,>));
-            services.TryAddSingleton(typeof(IConsumer<,>), typeof(ScopedConsumer<,>));
-            services.TryAddSingleton<IAdminClient, ScopedAdminClient>();
+            services.TryAddSingleton(typeof(IProducer<,>), typeof(GlobalProducer<,>));
+            services.TryAddSingleton(typeof(IConsumer<,>), typeof(GlobalConsumer<,>));
+            services.TryAddSingleton<IAdminClient, GlobalAdminClient>();
 
             services.AddOptions();
 

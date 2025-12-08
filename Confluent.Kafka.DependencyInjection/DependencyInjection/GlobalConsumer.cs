@@ -2,15 +2,12 @@
 {
     using Confluent.Kafka.SyncOverAsync;
 
-    using Microsoft.Extensions.DependencyInjection;
-
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
 
-    sealed class ScopedConsumer<TKey, TValue> :
-        IConsumer<TKey, TValue>
+    sealed class GlobalConsumer<TKey, TValue> : IConsumer<TKey, TValue>
     {
         static readonly Type[] BuiltInTypes =
         {
@@ -24,26 +21,27 @@
             typeof(byte[]),
         };
 
-        readonly IServiceScopeFactory scopes;
+        readonly IEnumerable<IClientConfigProvider> configProviders;
+        readonly IEnumerable<IClientBuilderSetup> builderSetups;
         readonly IDeserializer<TKey> keyDeserializer;
         readonly IDeserializer<TValue> valueDeserializer;
         readonly IAsyncDeserializer<TKey> asyncKeyDeserializer;
         readonly IAsyncDeserializer<TValue> asyncValueDeserializer;
         readonly object syncObj = new object();
 
-        IServiceScope scope;
         IConsumer<TKey, TValue> consumer;
-
         bool closed;
 
-        public ScopedConsumer(
-            IServiceScopeFactory scopes,
+        public GlobalConsumer(
+            IEnumerable<IClientConfigProvider> configProviders,
+            IEnumerable<IClientBuilderSetup> builderSetups,
             IDeserializer<TKey> keyDeserializer = null,
             IDeserializer<TValue> valueDeserializer = null,
             IAsyncDeserializer<TKey> asyncKeyDeserializer = null,
             IAsyncDeserializer<TValue> asyncValueDeserializer = null)
         {
-            this.scopes = scopes;
+            this.configProviders = configProviders;
+            this.builderSetups = builderSetups;
             this.keyDeserializer = keyDeserializer;
             this.valueDeserializer = valueDeserializer;
             this.asyncKeyDeserializer = asyncKeyDeserializer;
@@ -72,11 +70,9 @@
                     {
                         if (consumer == null)
                         {
-                            scope = scopes.CreateScope();
-
                             var config = new Dictionary<string, string>();
 
-                            foreach (var provider in scope.ServiceProvider.GetServices<IClientConfigProvider>())
+                            foreach (var provider in configProviders)
                             {
                                 var iterator = provider.ForConsumer<TKey, TValue>();
 
@@ -88,7 +84,7 @@
 
                             var builder = new DIBuilder(config);
 
-                            foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
+                            foreach (var setup in builderSetups)
                             {
                                 setup.Apply(builder);
                             }
@@ -300,7 +296,6 @@
             }
 
             consumer?.Dispose();
-            scope?.Dispose();
         }
 
         sealed class DIBuilder : ConsumerBuilder<TKey, TValue>

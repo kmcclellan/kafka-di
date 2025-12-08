@@ -2,23 +2,24 @@
 {
     using Confluent.Kafka.Admin;
 
-    using Microsoft.Extensions.DependencyInjection;
-
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    sealed class ScopedAdminClient : IAdminClient
+    sealed class GlobalAdminClient : IAdminClient
     {
-        readonly IServiceScopeFactory scopes;
+        readonly IEnumerable<IClientConfigProvider> configProviders;
+        readonly IEnumerable<IClientBuilderSetup> builderSetups;
         readonly object syncObj = new object();
 
-        IServiceScope scope;
         IAdminClient client;
 
-        public ScopedAdminClient(IServiceScopeFactory scopes)
+        public GlobalAdminClient(
+            IEnumerable<IClientConfigProvider> configProviders,
+            IEnumerable<IClientBuilderSetup> builderSetups)
         {
-            this.scopes = scopes;
+            this.configProviders = configProviders;
+            this.builderSetups = builderSetups;
         }
 
         public Handle Handle => Client.Handle;
@@ -35,11 +36,9 @@
                     {
                         if (client == null)
                         {
-                            scope = scopes.CreateScope();
-
                             var config = new Dictionary<string, string>();
 
-                            foreach (var provider in scope.ServiceProvider.GetServices<IClientConfigProvider>())
+                            foreach (var provider in configProviders)
                             {
                                 var iterator = provider.ForAdminClient();
 
@@ -51,7 +50,7 @@
 
                             var builder = new AdminClientBuilder(config);
 
-                            foreach (var setup in scope.ServiceProvider.GetServices<IClientBuilderSetup>())
+                            foreach (var setup in builderSetups)
                             {
                                 setup.Apply(builder);
                             }
@@ -215,7 +214,6 @@
         public void Dispose()
         {
             client?.Dispose();
-            scope?.Dispose();
         }
     }
 }
