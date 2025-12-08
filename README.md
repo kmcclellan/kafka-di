@@ -5,6 +5,7 @@ An extension of [Confluent's Kafka client](https://github.com/confluentinc/confl
 * Configure/resolve Kafka clients using the service container.
 * Load client config properties using `Microsoft.Extensions.Configuration`.
 * Automatically log client events using `Microsoft.Extensions.Logging`.
+* Extend a base hosted service to consume/process Kafka messages with `Microsoft.Extensions.Hosting`.
 
 ## Installation
 
@@ -110,23 +111,21 @@ services.AddTransient<IClientBuilderSetup, MyClientSetup>();
 
 ### Consumer hosting
 
-Once the client is configured, a common pattern for consuming is to implement a .NET `BackgroundService`.
+Once the client is configured, implement `ConsumerService` to integrate with the .NET host.
 
 ```c#
-class MyWorker(IConsumer<Ignore, MyType> consumer) : BackgroundService
+class MyWorker(
+    IConsumer<Ignore, MyType> consumer,
+    IOptions<ConsumerHostingOptions> options,
+    ILogger<MyWorker> logger) :
+    ConsumerService<Ignore, MyType>(consumer, options, logger)
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override ValueTask ProcessAsync(
+        ConsumeResult<Ignore, MyType> result,
+        CancellationToken cancellationToken)
     {
-        Console.WriteLine("Consumer service started.");
-
-        // ConsumeAllAsync() is an extension provided by this library.
-        return consumer.ConsumeAllAsync(
-            x =>
-            {
-                Console.WriteLine($"Message {x.TopicPartitionOffset} processed.");
-                return ValueTask.CompletedTask;
-            },
-            cancellationToken: stoppingToken);
+        // Process the message.
+        return ValueTask.CompletedTask;
     }
 }
 ```
@@ -134,5 +133,33 @@ class MyWorker(IConsumer<Ignore, MyType> consumer) : BackgroundService
 Register the service with the container.
 
 ```c#
-services.AddHostedService<MyWorker>();
+builder.Services.AddHostedService<MyWorker>();
+
+// Bind consumer hosting configuration.
+var hostingOptions = builder.Services.AddOptions<ConsumerHostingOptions>()
+    .BindConfiguration("Kafka:Hosting");
+```
+
+Hosted consumer features:
+
+* Configurable parallelism while preserving order for each Kafka message key.
+* Parallel-safe offset storage to achieve ["at least once" delivery semantics](https://docs.confluent.io/kafka/design/delivery-semantics.html#consumer-receipt).
+
+```json
+{
+  "Kafka": {
+    "Consumer": {
+      "bootstrap.servers": "localhost:9092",
+      "group.id": "example",
+      "enable.auto.offset.store": "false"
+    },
+    "Hosting": {
+      "Disabled": false,
+      "Subscription": [ "my-topic" ],
+      "MaxDegreeOfParallelism": 10,
+      "StoreProcessedOffsets": true
+    }
+  }
+}
+
 ```

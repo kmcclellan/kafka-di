@@ -1,11 +1,14 @@
 using Confluent.Kafka;
 using Confluent.Kafka.DependencyInjection;
+using Confluent.Kafka.Hosting;
 using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 var builder = Host.CreateApplicationBuilder();
 
@@ -27,6 +30,10 @@ builder.Services.AddSingleton<ISchemaRegistryClient>(
 
 builder.Services.AddTransient<IClientBuilderSetup, MyClientSetup>();
 builder.Services.AddHostedService<MyWorker>();
+
+// Bind consumer hosting configuration.
+var hostingOptions = builder.Services.AddOptions<ConsumerHostingOptions>()
+    .BindConfiguration("Kafka:Hosting");
 
 IHost host;
 
@@ -79,19 +86,17 @@ class MyClientSetup : IClientBuilderSetup
     }
 }
 
-class MyWorker(IConsumer<Ignore, MyType> consumer) : BackgroundService
+class MyWorker(
+    IConsumer<Ignore, MyType> consumer,
+    IOptions<ConsumerHostingOptions> options,
+    ILogger<MyWorker> logger) :
+    ConsumerService<Ignore, MyType>(consumer, options, logger)
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override ValueTask ProcessAsync(
+        ConsumeResult<Ignore, MyType> result,
+        CancellationToken cancellationToken)
     {
-        Console.WriteLine("Consumer service started.");
-
-        // ConsumeAllAsync() is an extension provided by this library.
-        return consumer.ConsumeAllAsync(
-            x =>
-            {
-                Console.WriteLine($"Message {x.TopicPartitionOffset} processed.");
-                return ValueTask.CompletedTask;
-            },
-            cancellationToken: stoppingToken);
+        // Process the message.
+        return ValueTask.CompletedTask;
     }
 }
