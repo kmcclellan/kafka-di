@@ -284,8 +284,9 @@
         {
             readonly IEqualityComparer<TKey> keyComparer;
             readonly ConsumeResult<TKey, TValue>[] results;
+            readonly int[] committing;
+            readonly int[] blocking;
             readonly int?[] hashes;
-            readonly bool[] statuses;
 
             int head, tail, count;
 
@@ -293,7 +294,8 @@
             {
                 this.keyComparer = keyComparer;
                 results = new ConsumeResult<TKey, TValue>[size];
-                statuses = new bool[size];
+                committing = new int[size];
+                blocking = new int[size];
                 hashes = new int?[size];
             }
 
@@ -306,49 +308,45 @@
             /// <returns>The index of the result within the buffer, or <c>-1</c> if processing is blocked.</returns>
             public int TryStart(ConsumeResult<TKey, TValue> result)
             {
-                var index = tail;
-                results[index] = result;
-                statuses[index] = false;
+                var index = tail++;
 
-                hashes[index] = result.Message != null && result.Message.Key != null
-                    ? keyComparer.GetHashCode(result.Message.Key)
-                    : default(int?);
-
-                lock (results)
+                if (tail == results.Length)
                 {
-                    tail++;
+                    tail = 0;
+                }
 
-                    if (tail == results.Length)
+                results[index] = result;
+                committing[index] = Interlocked.Increment(ref count) == 1 ? 1 : 0;
+                blocking[index] = -1;
+
+                if (result.Message != null && result.Message.Key != null)
+                {
+                    hashes[index] = keyComparer.GetHashCode(result.Message.Key);
+
+                    for (var i = 1; i < count; i++)
                     {
-                        tail = 0;
-                    }
+                        var prev = index - i;
 
-                    count++;
-
-                    if (hashes[index] != null)
-                    {
-                        var prev = index;
-
-                        while (prev != head)
+                        if (prev < 0)
                         {
-                            prev--;
+                            prev += results.Length;
+                        }
 
-                            if (prev == -1)
+                        if (hashes[prev] == hashes[index] &&
+                            keyComparer.Equals(results[prev].Message.Key, result.Message.Key))
+                        {
+                            if (Interlocked.CompareExchange(ref blocking[prev], index, -1) == -1)
                             {
-                                prev = results.Length - 1;
+                                return -1;
                             }
 
-                            if (KeysMatch(prev, index))
-                            {
-                                if (!statuses[prev])
-                                {
-                                    return -1;
-                                }
-
-                                break;
-                            }
+                            break;
                         }
                     }
+                }
+                else
+                {
+                    hashes[index] = null;
                 }
 
                 return index;
@@ -363,38 +361,8 @@
             /// <returns>The index of the next result ready for processing, or <c>-1</c> if none exists.</returns>
             public int MarkProcessed(int index, out bool commit)
             {
-                lock (results)
-                {
-                    statuses[index] = true;
-                    commit = index == head;
-
-                    if (hashes[index] != null)
-                    {
-                        var next = index;
-
-                        while (true)
-                        {
-                            next++;
-
-                            if (next == results.Length)
-                            {
-                                next = 0;
-                            }
-
-                            if (next == tail)
-                            {
-                                break;
-                            }
-
-                            if (KeysMatch(next, index))
-                            {
-                                return next;
-                            }
-                        }
-                    }
-                }
-
-                return -1;
+                commit = Interlocked.Exchange(ref committing[index], -1) == 1;
+                return Interlocked.Exchange(ref blocking[index], -2);
             }
 
             /// <summary>
@@ -403,45 +371,26 @@
             /// <returns>The index of the next result ready for removal, or <c>-1</c> if none exists.</returns>
             public int MarkFinished()
             {
-                results[head] = null;
+                results[head++] = null;
 
-                lock (results)
+                if (head == results.Length)
                 {
-                    head++;
+                    head = 0;
+                }
 
-                    if (head == results.Length)
-                    {
-                        head = 0;
-                    }
-
-                    count--;
-
-                    if (count > 0 && statuses[head])
-                    {
-                        return head;
-                    }
+                if (Interlocked.Decrement(ref count) > 0 &&
+                    Interlocked.CompareExchange(ref committing[head], 1, 0) == -1)
+                {
+                    return head;
                 }
 
                 return -1;
             }
-
-            bool KeysMatch(int x, int y)
-            {
-                var h1 = hashes[x];
-                var h2 = hashes[y];
-
-                if (h1 == null || h2 == null || h1 != h2)
-                {
-                    return false;
-                }
-
-                return keyComparer.Equals(results[x].Message.Key, results[y].Message.Key);
-            }
         }
 
-        private sealed class ByteComparer : IEqualityComparer<byte[]>
+        sealed class ByteComparer : IEqualityComparer<byte[]>
         {
-            private ByteComparer()
+            ByteComparer()
             {
             }
 
