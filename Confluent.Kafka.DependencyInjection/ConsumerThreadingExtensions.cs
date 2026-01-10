@@ -106,6 +106,11 @@
                 return Task.FromCanceled(cancellationToken);
             }
 
+            if (time == null)
+            {
+                time = TimeProvider.System;
+            }
+
             if (maxDegreeOfParallelism == 1)
             {
                 return ConsumeSequential();
@@ -127,9 +132,7 @@
                 }
             }
 
-            var buffer = new ConsumeBuffer<TKey, TValue>(
-                maxDegreeOfParallelism,
-                keyComparer);
+            var buffer = new ConsumeBuffer<TKey, TValue>(maxDegreeOfParallelism, keyComparer);
 
             StartPolling();
 
@@ -152,11 +155,21 @@
             {
                 while (true)
                 {
-                    var message = default(ConsumeResult<TKey, TValue>);
+                    var result = default(ConsumeResult<TKey, TValue>);
 
                     try
                     {
-                        message = await ConsumeAsync(consumer, time, cancellationToken).ConfigureAwait(false);
+                        var delay = PollMinDelay;
+
+                        while ((result = consumer.Consume(millisecondsTimeout: 0)) == null && exceptions.IsEmpty)
+                        {
+                            await time.Delay(delay, cancellationToken).ConfigureAwait(false);
+
+                            if (delay < PollMaxDelay)
+                            {
+                                delay = new TimeSpan(delay.Ticks * 2);
+                            }
+                        }
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
@@ -166,9 +179,9 @@
                         exceptions.Add(exception);
                     }
 
-                    if (message != null)
+                    if (result != null)
                     {
-                        var index = buffer.TryStart(message);
+                        var index = buffer.TryStart(result);
                         var incremented = Interlocked.Increment(ref totalInFlight);
 
                         if (index != -1)
