@@ -130,9 +130,8 @@
 
                         await consumeTask.ConfigureAwait(false);
                     }
-                    catch (KafkaException exception) when (!exception.Error.IsFatal)
+                    catch (KafkaException exception) when (HandleException(exception))
                     {
-                        LogError(logger, consumer.Name, exception.Error.Code, exception);
                     }
                 }
             }
@@ -158,5 +157,27 @@
         protected abstract ValueTask ProcessAsync(
             ConsumeResult<TKey, TValue> result,
             CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Attempts to handle/recover from a Kafka exception.
+        /// </summary>
+        /// <remarks>
+        /// The base implementation logs the error and resumes unless <see cref="Error.IsFatal"/>.
+        /// </remarks>
+        /// <param name="exception">The Kafka exception.</param>
+        /// <returns>
+        /// <see langword="true"/> to resume consuming, <see langword="false"/> to propagate the exception to the host.
+        /// </returns>
+        protected virtual bool HandleException(KafkaException exception)
+        {
+#if NET7_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(exception, nameof(exception));
+#else
+            if (exception == null) throw new ArgumentNullException(nameof(exception));
+#endif
+
+            LogError(logger, consumer.Name, exception.Error.Code, exception);
+            return !exception.Error.IsFatal;
+        }
     }
 }
