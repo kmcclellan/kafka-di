@@ -16,7 +16,7 @@
     <PackageReleaseNotes>https://github.com/kmcclellan/kafka-di/releases/v$(Version)</PackageReleaseNotes>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <Authors>Kyle McClellan and others</Authors>
-    <Copyright>%A9 2020-2025 Kyle McClellan and others</Copyright>
+    <Copyright>%A9 2020-2026 Kyle McClellan and others</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
