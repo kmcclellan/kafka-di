@@ -10,9 +10,9 @@
     {
         readonly IEnumerable<IClientConfigProvider> configProviders;
         readonly IEnumerable<IClientBuilderSetup> builderSetups;
-        readonly object syncObj = new object();
+        readonly object syncObj = new();
 
-        IAdminClient client;
+        IAdminClient? client;
 
         public GlobalAdminClient(
             IEnumerable<IClientConfigProvider> configProviders,
@@ -76,14 +76,14 @@
 
         public Task<DescribeUserScramCredentialsResult> DescribeUserScramCredentialsAsync(
             IEnumerable<string> users,
-            DescribeUserScramCredentialsOptions options = null)
+            DescribeUserScramCredentialsOptions? options = null)
         {
             return Client.DescribeUserScramCredentialsAsync(users, options);
         }
 
         public Task AlterUserScramCredentialsAsync(
             IEnumerable<UserScramCredentialAlteration> alterations,
-            AlterUserScramCredentialsOptions options = null)
+            AlterUserScramCredentialsOptions? options = null)
         {
             return Client.AlterUserScramCredentialsAsync(alterations, options);
         }
@@ -98,26 +98,26 @@
             return Client.GetMetadata(topic, timeout);
         }
 
-        public Task CreateTopicsAsync(IEnumerable<TopicSpecification> topics, CreateTopicsOptions options = null)
+        public Task CreateTopicsAsync(IEnumerable<TopicSpecification> topics, CreateTopicsOptions? options = null)
         {
             return Client.CreateTopicsAsync(topics, options);
         }
 
-        public Task DeleteTopicsAsync(IEnumerable<string> topics, DeleteTopicsOptions options = null)
+        public Task DeleteTopicsAsync(IEnumerable<string> topics, DeleteTopicsOptions? options = null)
         {
             return Client.DeleteTopicsAsync(topics, options);
         }
 
         public Task CreatePartitionsAsync(
             IEnumerable<PartitionsSpecification> partitionsSpecifications,
-            CreatePartitionsOptions options = null)
+            CreatePartitionsOptions? options = null)
         {
             return Client.CreatePartitionsAsync(partitionsSpecifications, options);
         }
 
         public Task<List<DeleteRecordsResult>> DeleteRecordsAsync(
             IEnumerable<TopicPartitionOffset> topicPartitionOffsets,
-            DeleteRecordsOptions options = null)
+            DeleteRecordsOptions? options = null)
         {
             return Client.DeleteRecordsAsync(topicPartitionOffsets, options);
         }
@@ -132,33 +132,33 @@
             return Client.ListGroups(timeout);
         }
 
-        public Task<ListConsumerGroupsResult> ListConsumerGroupsAsync(ListConsumerGroupsOptions options = null)
+        public Task<ListConsumerGroupsResult> ListConsumerGroupsAsync(ListConsumerGroupsOptions? options = null)
         {
             return Client.ListConsumerGroupsAsync(options);
         }
 
         public Task<DescribeConsumerGroupsResult> DescribeConsumerGroupsAsync(
             IEnumerable<string> groups,
-            DescribeConsumerGroupsOptions options = null)
+            DescribeConsumerGroupsOptions? options = null)
         {
             return Client.DescribeConsumerGroupsAsync(groups, options);
         }
 
-        public Task DeleteGroupsAsync(IList<string> groups, DeleteGroupsOptions options = null)
+        public Task DeleteGroupsAsync(IList<string> groups, DeleteGroupsOptions? options = null)
         {
             return Client.DeleteGroupsAsync(groups, options);
         }
 
         public Task<List<ListConsumerGroupOffsetsResult>> ListConsumerGroupOffsetsAsync(
             IEnumerable<ConsumerGroupTopicPartitions> groupPartitions,
-            ListConsumerGroupOffsetsOptions options = null)
+            ListConsumerGroupOffsetsOptions? options = null)
         {
             return Client.ListConsumerGroupOffsetsAsync(groupPartitions, options);
         }
 
         public Task<List<AlterConsumerGroupOffsetsResult>> AlterConsumerGroupOffsetsAsync(
             IEnumerable<ConsumerGroupTopicPartitionOffsets> groupPartitions,
-            AlterConsumerGroupOffsetsOptions options = null)
+            AlterConsumerGroupOffsetsOptions? options = null)
         {
             return Client.AlterConsumerGroupOffsetsAsync(groupPartitions, options);
         }
@@ -166,47 +166,47 @@
         public Task<DeleteConsumerGroupOffsetsResult> DeleteConsumerGroupOffsetsAsync(
             string group,
             IEnumerable<TopicPartition> partitions,
-            DeleteConsumerGroupOffsetsOptions options = null)
+            DeleteConsumerGroupOffsetsOptions? options = null)
         {
             return Client.DeleteConsumerGroupOffsetsAsync(group, partitions, options);
         }
 
         public Task<List<DescribeConfigsResult>> DescribeConfigsAsync(
             IEnumerable<ConfigResource> resources,
-            DescribeConfigsOptions options = null)
+            DescribeConfigsOptions? options = null)
         {
             return Client.DescribeConfigsAsync(resources, options);
         }
 
         public Task AlterConfigsAsync(
             Dictionary<ConfigResource, List<ConfigEntry>> configs,
-            AlterConfigsOptions options = null)
+            AlterConfigsOptions? options = null)
         {
             return Client.AlterConfigsAsync(configs, options);
         }
 
         public Task<List<IncrementalAlterConfigsResult>> IncrementalAlterConfigsAsync(
             Dictionary<ConfigResource, List<ConfigEntry>> configs,
-            IncrementalAlterConfigsOptions options = null)
+            IncrementalAlterConfigsOptions? options = null)
         {
             return Client.IncrementalAlterConfigsAsync(configs, options);
         }
 
         public Task<DescribeAclsResult> DescribeAclsAsync(
             AclBindingFilter aclBindingFilter,
-            DescribeAclsOptions options = null)
+            DescribeAclsOptions? options = null)
         {
             return Client.DescribeAclsAsync(aclBindingFilter, options);
         }
 
-        public Task CreateAclsAsync(IEnumerable<AclBinding> aclBindings, CreateAclsOptions options = null)
+        public Task CreateAclsAsync(IEnumerable<AclBinding> aclBindings, CreateAclsOptions? options = null)
         {
             return Client.CreateAclsAsync(aclBindings, options);
         }
 
         public Task<List<DeleteAclsResult>> DeleteAclsAsync(
             IEnumerable<AclBindingFilter> aclBindingFilters,
-            DeleteAclsOptions options = null)
+            DeleteAclsOptions? options = null)
         {
             return Client.DeleteAclsAsync(aclBindingFilters, options);
         }

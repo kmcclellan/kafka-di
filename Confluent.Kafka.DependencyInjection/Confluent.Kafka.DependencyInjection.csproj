@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net462;net8.0</TargetFrameworks>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
     <RootNamespace>Confluent.Kafka</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AnalysisMode>All</AnalysisMode>
+    <AnalysisMode>all</AnalysisMode>
   </PropertyGroup>
 
   <PropertyGroup>

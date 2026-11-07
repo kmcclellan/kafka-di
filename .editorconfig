@@ -29,3 +29,6 @@ csharp_using_directive_placement = inside_namespace
 # IDE0160: Use block-scoped namespace
 # IDE0161: Use file-scoped namespace
 csharp_style_namespace_declarations = file_scoped
+
+# CA1510: Use ArgumentNullException throw helper - unavailable on older frameworks
+dotnet_diagnostic.CA1510.severity = none

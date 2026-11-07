@@ -23,22 +23,22 @@
 
         readonly IEnumerable<IClientConfigProvider> configProviders;
         readonly IEnumerable<IClientBuilderSetup> builderSetups;
-        readonly IDeserializer<TKey> keyDeserializer;
-        readonly IDeserializer<TValue> valueDeserializer;
-        readonly IAsyncDeserializer<TKey> asyncKeyDeserializer;
-        readonly IAsyncDeserializer<TValue> asyncValueDeserializer;
-        readonly object syncObj = new object();
+        readonly IDeserializer<TKey>? keyDeserializer;
+        readonly IDeserializer<TValue>? valueDeserializer;
+        readonly IAsyncDeserializer<TKey>? asyncKeyDeserializer;
+        readonly IAsyncDeserializer<TValue>? asyncValueDeserializer;
+        readonly object syncObj = new();
 
-        IConsumer<TKey, TValue> consumer;
+        IConsumer<TKey, TValue>? consumer;
         bool closed;
 
         public GlobalConsumer(
             IEnumerable<IClientConfigProvider> configProviders,
             IEnumerable<IClientBuilderSetup> builderSetups,
-            IDeserializer<TKey> keyDeserializer = null,
-            IDeserializer<TValue> valueDeserializer = null,
-            IAsyncDeserializer<TKey> asyncKeyDeserializer = null,
-            IAsyncDeserializer<TValue> asyncValueDeserializer = null)
+            IDeserializer<TKey>? keyDeserializer = null,
+            IDeserializer<TValue>? valueDeserializer = null,
+            IAsyncDeserializer<TKey>? asyncKeyDeserializer = null,
+            IAsyncDeserializer<TValue>? asyncValueDeserializer = null)
         {
             this.configProviders = configProviders;
             this.builderSetups = builderSetups;

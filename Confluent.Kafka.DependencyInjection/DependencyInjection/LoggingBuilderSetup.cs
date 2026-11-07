@@ -4,9 +4,9 @@
 
     sealed class LoggingBuilderSetup : IClientBuilderSetup
     {
-        readonly ILoggerFactory factory;
+        readonly ILoggerFactory? factory;
 
-        public LoggingBuilderSetup(ILoggerFactory factory = null)
+        public LoggingBuilderSetup(ILoggerFactory? factory = null)
         {
             this.factory = factory;
         }

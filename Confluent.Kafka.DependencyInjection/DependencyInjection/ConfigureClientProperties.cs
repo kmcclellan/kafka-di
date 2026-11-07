@@ -8,9 +8,9 @@
         IConfigureOptions<ConsumerConfig>,
         IConfigureOptions<ProducerConfig>
     {
-        readonly IConfiguration configuration;
+        readonly IConfiguration? configuration;
 
-        public ConfigureClientProperties(IConfiguration configuration = null)
+        public ConfigureClientProperties(IConfiguration? configuration = null)
         {
             this.configuration = configuration;
         }

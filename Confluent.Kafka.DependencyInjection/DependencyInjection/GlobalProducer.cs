@@ -23,22 +23,22 @@
 
         readonly IEnumerable<IClientConfigProvider> configProviders;
         readonly IEnumerable<IClientBuilderSetup> builderSetups;
-        readonly ISerializer<TKey> keySerializer;
-        readonly ISerializer<TValue> valueSerializer;
-        readonly IAsyncSerializer<TKey> asyncKeySerializer;
-        readonly IAsyncSerializer<TValue> asyncValueSerializer;
-        readonly object syncObj = new object();
+        readonly ISerializer<TKey>? keySerializer;
+        readonly ISerializer<TValue>? valueSerializer;
+        readonly IAsyncSerializer<TKey>? asyncKeySerializer;
+        readonly IAsyncSerializer<TValue>? asyncValueSerializer;
+        readonly object syncObj = new();
 
-        IProducer<TKey, TValue> producer;
-        IProducer<TKey, TValue> syncProducer;
+        IProducer<TKey, TValue>? producer;
+        IProducer<TKey, TValue>? syncProducer;
 
         public GlobalProducer(
             IEnumerable<IClientConfigProvider> configProviders,
             IEnumerable<IClientBuilderSetup> builderSetups,
-            ISerializer<TKey> keySerializer = null,
-            ISerializer<TValue> valueSerializer = null,
-            IAsyncSerializer<TKey> asyncKeySerializer = null,
-            IAsyncSerializer<TValue> asyncValueSerializer = null)
+            ISerializer<TKey>? keySerializer = null,
+            ISerializer<TValue>? valueSerializer = null,
+            IAsyncSerializer<TKey>? asyncKeySerializer = null,
+            IAsyncSerializer<TValue>? asyncValueSerializer = null)
         {
             this.configProviders = configProviders;
             this.builderSetups = builderSetups;
@@ -165,7 +165,7 @@
         public void Produce(
             string topic,
             Message<TKey, TValue> message,
-            Action<DeliveryReport<TKey, TValue>> deliveryHandler = null)
+            Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
         {
             SyncProducer.Produce(topic, message, deliveryHandler);
         }
@@ -173,7 +173,7 @@
         public void Produce(
             TopicPartition topicPartition,
             Message<TKey, TValue> message,
-            Action<DeliveryReport<TKey, TValue>> deliveryHandler = null)
+            Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
         {
             SyncProducer.Produce(topicPartition, message, deliveryHandler);
         }

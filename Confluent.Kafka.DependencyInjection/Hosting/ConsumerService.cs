@@ -16,29 +16,29 @@
     /// <typeparam name="TValue">The consumer value type.</typeparam>
     public abstract class ConsumerService<TKey, TValue> : BackgroundService
     {
-        static readonly Action<ILogger, Exception> LogDisabled =
+        static readonly Action<ILogger, Exception?> LogDisabled =
             LoggerMessage.Define(LogLevel.Information, default, "Hosted consumer is disabled");
 
-        static readonly Action<ILogger, Exception> LogNoAssignment =
+        static readonly Action<ILogger, Exception?> LogNoAssignment =
             LoggerMessage.Define(LogLevel.Warning, default, "No subscription/assignment for hosted consumer");
 
-        static readonly Func<ILogger, string, string, int, long, IDisposable> LogOffset =
+        static readonly Func<ILogger, string, string, int, long, IDisposable?> LogOffset =
             LoggerMessage.DefineScope<string, string, int, long>(
                 "{KafkaClient} - {KafkaTopic} [{KafkaPartition}] @{KafkaOffset}");
 
-        static readonly Action<ILogger, double, Exception> LogReceived =
+        static readonly Action<ILogger, double, Exception?> LogReceived =
             LoggerMessage.Define<double>(
                 LogLevel.Information,
                 new EventId(50, "MessageConsumed"),
                 "Kafka consume result received ({LagSeconds:N1}s lag)");
 
-        static readonly Action<ILogger, long, Exception> LogProcessed =
+        static readonly Action<ILogger, long, Exception?> LogProcessed =
             LoggerMessage.Define<long>(
                 LogLevel.Information,
                 new EventId(51, "MessageProcessed"),
                 "Kafka consume result processed ({ElapsedMilliseconds:N0}ms)");
 
-        static readonly Action<ILogger, string, ErrorCode, Exception> LogError =
+        static readonly Action<ILogger, string, ErrorCode, Exception?> LogError =
             LoggerMessage.Define<string, ErrorCode>(
                 LogLevel.Error,
                 default,
@@ -47,7 +47,7 @@
         readonly IConsumer<TKey, TValue> consumer;
         readonly IOptions<ConsumerHostingOptions> options;
         readonly ILogger<ConsumerService<TKey, TValue>> logger;
-        readonly IEqualityComparer<TKey> keyComparer;
+        readonly IEqualityComparer<TKey>? keyComparer;
 
         /// <param name="consumer">The Kafka consumer.</param>
         /// <param name="options">Options for hosted consuming.</param>
@@ -57,7 +57,7 @@
             IConsumer<TKey, TValue> consumer,
             IOptions<ConsumerHostingOptions> options,
             ILogger<ConsumerService<TKey, TValue>> logger,
-            IEqualityComparer<TKey> keyComparer = null)
+            IEqualityComparer<TKey>? keyComparer = null)
         {
             this.consumer = consumer ?? throw new ArgumentNullException(nameof(consumer));
             this.options = options ?? throw new ArgumentNullException(nameof(options));
@@ -170,11 +170,10 @@
         /// </returns>
         protected virtual bool HandleException(KafkaException exception)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(exception, nameof(exception));
-#else
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
-#endif
+            if (exception == null)
+            {
+                throw new ArgumentNullException(nameof(exception));
+            }
 
             LogError(logger, consumer.Name, exception.Error.Code, exception);
             return !exception.Error.IsFatal;

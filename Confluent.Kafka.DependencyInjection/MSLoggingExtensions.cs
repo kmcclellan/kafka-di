@@ -14,10 +14,10 @@
     /// </summary>
     public static class MSLoggingExtensions
     {
-        static readonly EventId PartitionsAssigned = new EventId(10, nameof(PartitionsAssigned)),
-            PartitionsRevoked = new EventId(11, nameof(PartitionsRevoked)),
-            PartitionsLost = new EventId(12, nameof(PartitionsLost)),
-            OffsetsCommitted = new EventId(20, nameof(OffsetsCommitted));
+        static readonly EventId PartitionsAssigned = new(10, nameof(PartitionsAssigned)),
+            PartitionsRevoked = new(11, nameof(PartitionsRevoked)),
+            PartitionsLost = new(12, nameof(PartitionsLost)),
+            OffsetsCommitted = new(20, nameof(OffsetsCommitted));
 
         /// <summary>
         /// Configures internal logging for admin clients.
@@ -27,13 +27,15 @@
         /// <returns>The same builder, for chaining.</returns>
         public static AdminClientBuilder AddLogging(this AdminClientBuilder builder, ILoggerFactory factory)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-            ArgumentNullException.ThrowIfNull(factory, nameof(factory));
-#else
-            if (builder == null) throw new ArgumentNullException(nameof(builder));
-            if (factory == null) throw new ArgumentNullException(nameof(factory));
-#endif
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (factory == null)
+            {
+                throw new ArgumentNullException(nameof(factory));
+            }
 
             var libLoggers = new ConcurrentDictionary<string, ILogger>();
             var clientLogger = default(ILogger);
@@ -54,13 +56,15 @@
             this ConsumerBuilder<TKey, TValue> builder,
             ILoggerFactory factory)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-            ArgumentNullException.ThrowIfNull(factory, nameof(factory));
-#else
-            if (builder == null) throw new ArgumentNullException(nameof(builder));
-            if (factory == null) throw new ArgumentNullException(nameof(factory));
-#endif
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (factory == null)
+            {
+                throw new ArgumentNullException(nameof(factory));
+            }
 
             var libLoggers = new ConcurrentDictionary<string, ILogger>();
             var clientLogger = default(ILogger);
@@ -71,10 +75,7 @@
             builder.SetPartitionsAssignedHandler(
                 (client, partitions) =>
                 {
-                    if (clientLogger == null)
-                    {
-                        clientLogger = factory.CreateLogger(client.GetType());
-                    }
+                    clientLogger ??= factory.CreateLogger(client.GetType());
 
                     var offsets = partitions.Select(x => new TopicPartitionOffset(x, Offset.Unset));
 
@@ -88,10 +89,7 @@
             builder.SetPartitionsRevokedHandler(
                 (client, offsets) =>
                 {
-                    if (clientLogger == null)
-                    {
-                        clientLogger = factory.CreateLogger(client.GetType());
-                    }
+                    clientLogger ??= factory.CreateLogger(client.GetType());
 
                     LogEvent(
                         clientLogger,
@@ -103,10 +101,7 @@
             builder.SetPartitionsLostHandler(
                 (client, offsets) =>
                 {
-                    if (clientLogger == null)
-                    {
-                        clientLogger = factory.CreateLogger(client.GetType());
-                    }
+                    clientLogger ??= factory.CreateLogger(client.GetType());
 
                     LogEvent(
                         clientLogger,
@@ -118,10 +113,7 @@
             builder.SetOffsetsCommittedHandler(
                 (client, commit) =>
                 {
-                    if (clientLogger == null)
-                    {
-                        clientLogger = factory.CreateLogger(client.GetType());
-                    }
+                    clientLogger ??= factory.CreateLogger(client.GetType());
 
                     if (commit.Error.IsError)
                     {
@@ -165,13 +157,15 @@
             this ProducerBuilder<TKey, TValue> builder,
             ILoggerFactory factory)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-            ArgumentNullException.ThrowIfNull(factory, nameof(factory));
-#else
-            if (builder == null) throw new ArgumentNullException(nameof(builder));
-            if (factory == null) throw new ArgumentNullException(nameof(factory));
-#endif
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (factory == null)
+            {
+                throw new ArgumentNullException(nameof(factory));
+            }
 
             var libLoggers = new ConcurrentDictionary<string, ILogger>();
             var clientLogger = default(ILogger);
@@ -187,7 +181,7 @@
             ConcurrentDictionary<string, ILogger> libLoggers,
             LogMessage message)
         {
-            if (!libLoggers.TryGetValue(message.Facility, out ILogger logger))
+            if (!libLoggers.TryGetValue(message.Facility, out var logger))
             {
                 logger = factory.CreateLogger("rdkafka#" + message.Facility);
                 libLoggers[message.Facility] = logger;
@@ -199,15 +193,11 @@
 
         static void HandleError(
             ILoggerFactory factory,
-            ref ILogger clientLogger,
+            ref ILogger? clientLogger,
             IClient client,
             Error error)
         {
-            if (clientLogger == null)
-            {
-                clientLogger = factory.CreateLogger(client.GetType());
-            }
-
+            clientLogger ??= factory.CreateLogger(client.GetType());
             LogError(clientLogger, error, new ClientLogValues("Kafka client error", client.Name));
         }
 
@@ -226,16 +216,16 @@
                 (x, y) => x.ToString());
         }
 
-        readonly struct ClientLogValues : IReadOnlyList<KeyValuePair<string, object>>
+        readonly struct ClientLogValues : IReadOnlyList<KeyValuePair<string, object?>>
         {
             readonly string message;
             readonly string client;
-            readonly IEnumerable<TopicPartitionOffset> offsets;
+            readonly IEnumerable<TopicPartitionOffset>? offsets;
 
             public ClientLogValues(
                 string message,
                 string client,
-                IEnumerable<TopicPartitionOffset> offsets = null)
+                IEnumerable<TopicPartitionOffset>? offsets = null)
             {
                 this.message = message;
                 this.client = client;
@@ -244,24 +234,20 @@
 
             public int Count => offsets == null ? 1 : 2;
 
-            public KeyValuePair<string, object> this[int index]
+            public KeyValuePair<string, object?> this[int index]
             {
                 get
                 {
-                    switch (index)
+                    return index switch
                     {
-                        case 0:
-                            return new KeyValuePair<string, object>("KafkaClient", client);
-
-                        case 1:
-                            return new KeyValuePair<string, object>("KafkaOffsets", offsets);
-                    }
-
-                    throw new ArgumentOutOfRangeException(nameof(index));
+                        0 => new("KafkaClient", client),
+                        1 => new("KafkaOffsets", offsets),
+                        _ => throw new ArgumentOutOfRangeException(nameof(index)),
+                    };
                 }
             }
 
-            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+            public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
             {
                 for (var i = 0; i < this.Count;)
                 {

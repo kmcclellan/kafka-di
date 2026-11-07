@@ -28,14 +28,13 @@
         /// <returns>A task for the consume result.</returns>
         public static async ValueTask<ConsumeResult<TKey, TValue>> ConsumeAsync<TKey, TValue>(
             this IConsumer<TKey, TValue> consumer,
-            TimeProvider time = null,
+            TimeProvider? time = null,
             CancellationToken cancellationToken = default)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(consumer, nameof(consumer));
-#else
-            if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-#endif
+            if (consumer == null)
+            {
+                throw new ArgumentNullException(nameof(consumer));
+            }
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -44,10 +43,7 @@
 
             while ((result = consumer.Consume(millisecondsTimeout: 0)) == null)
             {
-                if (time == null)
-                {
-                    time = TimeProvider.System;
-                }
+                time ??= TimeProvider.System;
 
                 await GetDelay(delay, time, cancellationToken).ConfigureAwait(false);
 
@@ -81,17 +77,19 @@
             Func<ConsumeResult<TKey, TValue>, ValueTask> processFunc,
             int maxDegreeOfParallelism = 1,
             bool storeOffsets = false,
-            IEqualityComparer<TKey> keyComparer = null,
-            TimeProvider time = null,
+            IEqualityComparer<TKey>? keyComparer = null,
+            TimeProvider? time = null,
             CancellationToken cancellationToken = default)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(consumer, nameof(consumer));
-            ArgumentNullException.ThrowIfNull(processFunc, nameof(processFunc));
-#else
-            if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-            if (processFunc == null) throw new ArgumentNullException(nameof(processFunc));
-#endif
+            if (consumer == null)
+            {
+                throw new ArgumentNullException(nameof(consumer));
+            }
+
+            if (processFunc == null)
+            {
+                throw new ArgumentNullException(nameof(processFunc));
+            }
 
             if (maxDegreeOfParallelism < 1)
             {
@@ -106,10 +104,7 @@
                 return Task.FromCanceled(cancellationToken);
             }
 
-            if (time == null)
-            {
-                time = TimeProvider.System;
-            }
+            time ??= TimeProvider.System;
 
             if (maxDegreeOfParallelism == 1)
             {
@@ -305,7 +300,7 @@
         sealed class ConsumeBuffer<TKey, TValue>
         {
             readonly IEqualityComparer<TKey> keyComparer;
-            readonly ConsumeResult<TKey, TValue>[] results;
+            readonly ConsumeResult<TKey, TValue>?[] results;
             readonly int[] committing;
             readonly int[] blocking;
             readonly int?[] hashes;
@@ -315,13 +310,14 @@
             public ConsumeBuffer(int size, IEqualityComparer<TKey> keyComparer)
             {
                 this.keyComparer = keyComparer;
-                results = new ConsumeResult<TKey, TValue>[size];
+                results = new ConsumeResult<TKey, TValue>?[size];
                 committing = new int[size];
                 blocking = new int[size];
                 hashes = new int?[size];
             }
 
-            public ConsumeResult<TKey, TValue> this[int index] => results[index];
+            public ConsumeResult<TKey, TValue> this[int index] =>
+                results[index] ?? throw new InvalidOperationException($"No result buffered at index {index}.");
 
             /// <summary>
             /// Stores the result and determines if processing may start.
@@ -355,7 +351,7 @@
                         }
 
                         if (hashes[prev] == hashes[index] &&
-                            keyComparer.Equals(results[prev].Message.Key, result.Message.Key))
+                            keyComparer.Equals(results[prev]!.Message.Key, result.Message.Key))
                         {
                             if (Interlocked.CompareExchange(ref blocking[prev], index, -1) == -1)
                             {
@@ -418,7 +414,7 @@
 
             public static ByteComparer Instance { get; } = new ByteComparer();
 
-            public bool Equals(byte[] x, byte[] y)
+            public bool Equals(byte[]? x, byte[]? y)
             {
                 if (x == y)
                 {

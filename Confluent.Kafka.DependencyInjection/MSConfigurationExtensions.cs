@@ -16,13 +16,15 @@
         /// <param name="configuration">The application configuration.</param>
         public static void LoadFrom(this AdminClientConfig adminConfig, IConfiguration configuration)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(adminConfig, nameof(adminConfig));
-            ArgumentNullException.ThrowIfNull(configuration, nameof(configuration));
-#else
-            if (adminConfig == null) throw new ArgumentNullException(nameof(adminConfig));
-            if (configuration == null) throw new ArgumentNullException(nameof(configuration));
-#endif
+            if (adminConfig == null)
+            {
+                throw new ArgumentNullException(nameof(adminConfig));
+            }
+
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
 
             LoadFrom(adminConfig, configuration, "Admin");
         }
@@ -34,13 +36,15 @@
         /// <param name="configuration">The application configuration.</param>
         public static void LoadFrom(this ConsumerConfig consumerConfig, IConfiguration configuration)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(consumerConfig, nameof(consumerConfig));
-            ArgumentNullException.ThrowIfNull(configuration, nameof(configuration));
-#else
-            if (consumerConfig == null) throw new ArgumentNullException(nameof(consumerConfig));
-            if (configuration == null) throw new ArgumentNullException(nameof(configuration));
-#endif
+            if (consumerConfig == null)
+            {
+                throw new ArgumentNullException(nameof(consumerConfig));
+            }
+
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
 
             LoadFrom(consumerConfig, configuration, "Consumer");
         }
@@ -52,13 +56,15 @@
         /// <param name="configuration">The application configuration.</param>
         public static void LoadFrom(this ProducerConfig producerConfig, IConfiguration configuration)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(producerConfig, nameof(producerConfig));
-            ArgumentNullException.ThrowIfNull(configuration, nameof(configuration));
-#else
-            if (producerConfig == null) throw new ArgumentNullException(nameof(producerConfig));
-            if (configuration == null) throw new ArgumentNullException(nameof(configuration));
-#endif
+            if (producerConfig == null)
+            {
+                throw new ArgumentNullException(nameof(producerConfig));
+            }
+
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
 
             LoadFrom(producerConfig, configuration, "Producer");
         }

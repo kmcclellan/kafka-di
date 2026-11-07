@@ -20,11 +20,10 @@ namespace Confluent.Kafka
         /// <returns>The same services, for chaining.</returns>
         public static IServiceCollection AddKafkaClient(this IServiceCollection services)
         {
-#if NET7_0_OR_GREATER
-            ArgumentNullException.ThrowIfNull(services, nameof(services));
-#else
-            if (services == null) throw new ArgumentNullException(nameof(services));
-#endif
+            if (services == null)
+            {
+                throw new ArgumentNullException(nameof(services));
+            }
 
             services.TryAddSingleton(typeof(IProducer<,>), typeof(GlobalProducer<,>));
             services.TryAddSingleton(typeof(IConsumer<,>), typeof(GlobalConsumer<,>));
