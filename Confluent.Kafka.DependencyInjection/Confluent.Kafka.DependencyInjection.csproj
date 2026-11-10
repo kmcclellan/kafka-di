@@ -12,7 +12,7 @@
   <PropertyGroup>
     <Title>Kafka Dependency Injection</Title>
     <Description>An extension of Confluent.Kafka for use with Microsoft.Extensions.DependencyInjection (and friends).</Description>
-    <PackageTags>kafka;confluent;dependencyinjection;di;ioc;logging</PackageTags>
+    <PackageTags>kafka;confluent;dependencyinjection;di;ioc;logging;opentelemetry;tracing;metrics</PackageTags>
     <PackageProjectUrl>https://github.com/kmcclellan/kafka-di</PackageProjectUrl>
     <PackageReleaseNotes>https://github.com/kmcclellan/kafka-di/releases/v$(Version)</PackageReleaseNotes>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -37,6 +37,10 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net462'">
     <PackageReference Include="Microsoft.Bcl.TimeProvider" Version="10.0.15" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="10.0.15" />
   </ItemGroup>
 
   <ItemGroup>

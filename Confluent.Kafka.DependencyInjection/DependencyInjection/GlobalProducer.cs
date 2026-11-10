@@ -4,6 +4,7 @@
 
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -31,6 +32,7 @@
 
         IProducer<TKey, TValue>? producer;
         IProducer<TKey, TValue>? syncProducer;
+        bool deliveriesDisabled;
 
         public GlobalProducer(
             IEnumerable<IClientConfigProvider> configProviders,
@@ -72,6 +74,12 @@
                                 {
                                     config[iterator.Current.Key] = iterator.Current.Value;
                                 }
+                            }
+
+                            if (config.TryGetValue(ConfigPropertyNames.Producer.EnableDeliveryReports, out var val) &&
+                                bool.TryParse(val, out var enabled))
+                            {
+                                deliveriesDisabled = !enabled;
                             }
 
                             var builder = new DIBuilder(config);
@@ -167,7 +175,17 @@
             Message<TKey, TValue> message,
             Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
         {
-            SyncProducer.Produce(topic, message, deliveryHandler);
+            if (topic == null)
+            {
+                throw new ArgumentNullException(nameof(topic));
+            }
+
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            ProduceCore(topic, null, message, deliveryHandler);
         }
 
         public void Produce(
@@ -175,7 +193,17 @@
             Message<TKey, TValue> message,
             Action<DeliveryReport<TKey, TValue>>? deliveryHandler = null)
         {
-            SyncProducer.Produce(topicPartition, message, deliveryHandler);
+            if (topicPartition == null)
+            {
+                throw new ArgumentNullException(nameof(topicPartition));
+            }
+
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            ProduceCore(topicPartition.Topic, topicPartition, message, deliveryHandler);
         }
 
         public Task<DeliveryResult<TKey, TValue>> ProduceAsync(
@@ -183,7 +211,17 @@
             Message<TKey, TValue> message,
             CancellationToken cancellationToken = default)
         {
-            return Producer.ProduceAsync(topic, message, cancellationToken);
+            if (topic == null)
+            {
+                throw new ArgumentNullException(nameof(topic));
+            }
+
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            return ProduceAsyncCore(topic, null, message, cancellationToken);
         }
 
         public Task<DeliveryResult<TKey, TValue>> ProduceAsync(
@@ -191,7 +229,17 @@
             Message<TKey, TValue> message,
             CancellationToken cancellationToken = default)
         {
-            return Producer.ProduceAsync(topicPartition, message, cancellationToken);
+            if (topicPartition == null)
+            {
+                throw new ArgumentNullException(nameof(topicPartition));
+            }
+
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            return ProduceAsyncCore(topicPartition.Topic, topicPartition, message, cancellationToken);
         }
 
         public void BeginTransaction()
@@ -251,6 +299,95 @@
         {
             syncProducer?.Dispose();
             producer?.Dispose();
+        }
+
+        void ProduceCore(
+            string topic,
+            TopicPartition? topicPartition,
+            Message<TKey, TValue> message,
+            Action<DeliveryReport<TKey, TValue>>? deliveryHandler)
+        {
+            var target = SyncProducer;
+            EnsureTelemetrySupported();
+
+            var current = Activity.Current;
+            var activity = KafkaTelemetry.BeginProduce(Name, topic, ref message);
+
+            try
+            {
+                if (KafkaTelemetry.HasProduceListeners)
+                {
+                    var originalHandler = deliveryHandler;
+
+                    deliveryHandler =
+                        report =>
+                        {
+                            KafkaTelemetry.EndProduce(activity, report);
+                            activity?.Dispose();
+                            originalHandler?.Invoke(report);
+                        };
+                }
+
+                if (topicPartition == null)
+                {
+                    target.Produce(topic, message, deliveryHandler);
+                }
+                else
+                {
+                    target.Produce(topicPartition, message, deliveryHandler);
+                }
+            }
+            catch (Exception exception)
+            {
+                KafkaTelemetry.EndProduce<TKey, TValue>(activity, exception);
+                activity?.Dispose();
+                throw;
+            }
+            finally
+            {
+                // Restore the ambient context.
+                Activity.Current = current;
+            }
+        }
+
+        async Task<DeliveryResult<TKey, TValue>> ProduceAsyncCore(
+            string topic,
+            TopicPartition? topicPartition,
+            Message<TKey, TValue> message,
+            CancellationToken cancellationToken)
+        {
+            var target = Producer;
+            EnsureTelemetrySupported();
+
+            using var activity = KafkaTelemetry.BeginProduce(Name, topic, ref message);
+
+            try
+            {
+                var task = topicPartition == null
+                    ? target.ProduceAsync(topic, message, cancellationToken)
+                    : target.ProduceAsync(topicPartition, message, cancellationToken);
+
+                var result = await task.ConfigureAwait(false);
+
+                KafkaTelemetry.EndProduce(activity, result);
+                return result;
+            }
+            catch (Exception exception)
+            {
+                KafkaTelemetry.EndProduce<TKey, TValue>(activity, exception);
+                throw;
+            }
+        }
+
+        void EnsureTelemetrySupported()
+        {
+            if (deliveriesDisabled && KafkaTelemetry.HasProduceListeners)
+            {
+                throw new InvalidOperationException(
+                    $"Producer telemetry requires delivery reports. " +
+                    $"Set '{ConfigPropertyNames.Producer.EnableDeliveryReports}' to true, or " +
+                    $"stop listening to the '{KafkaTelemetry.InstrumentName}' activity source and meter.");
+            }
         }
 
         sealed class DIBuilder : ProducerBuilder<TKey, TValue>

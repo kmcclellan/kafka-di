@@ -10,6 +10,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
+
 var builder = Host.CreateApplicationBuilder();
 
 builder.Services.AddSingleton<IConfiguration>(
@@ -30,6 +33,11 @@ builder.Services.AddSingleton<ISchemaRegistryClient>(
 
 builder.Services.AddTransient<IClientBuilderSetup, MyClientSetup>();
 builder.Services.AddHostedService<MyWorker>();
+
+// Export Kafka client traces and metrics.
+builder.Services.AddOpenTelemetry()
+    .WithTracing(x => x.AddSource("Confluent.Kafka.DependencyInjection").AddConsoleExporter())
+    .WithMetrics(x => x.AddMeter("Confluent.Kafka.DependencyInjection").AddConsoleExporter());
 
 // Bind consumer hosting configuration.
 var hostingOptions = builder.Services.AddOptions<ConsumerHostingOptions>()

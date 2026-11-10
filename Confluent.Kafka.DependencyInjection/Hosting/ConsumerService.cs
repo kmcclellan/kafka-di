@@ -6,6 +6,7 @@
 
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -100,12 +101,16 @@
                             async result =>
                             {
                                 using (LogOffset(logger, consumer.Name, result.Topic, result.Partition, result.Offset))
+                                using (var activity = KafkaTelemetry.BeginProcess(
+                                    consumer.Name,
+                                    result,
+                                    options.Value.LinkActivities))
                                 {
-                                    var timestamp = DateTime.UtcNow;
+                                    var watch = Stopwatch.StartNew();
 
                                     if (logger.IsEnabled(LogLevel.Information))
                                     {
-                                        var lag = timestamp - result.Message.Timestamp.UtcDateTime;
+                                        var lag = DateTime.UtcNow - result.Message.Timestamp.UtcDateTime;
                                         LogReceived(logger, lag.TotalSeconds, null);
                                     }
 
@@ -114,13 +119,22 @@
                                         ? stoppingToken
                                         : CancellationToken.None;
 
-                                    await ProcessAsync(result, cancellationToken).ConfigureAwait(false);
+                                    try
+                                    {
+                                        await ProcessAsync(result, cancellationToken).ConfigureAwait(false);
+                                    }
+                                    catch (Exception exception)
+                                    {
+                                        KafkaTelemetry.EndProcess(result, watch, activity, exception);
+                                        throw;
+                                    }
 
                                     if (logger.IsEnabled(LogLevel.Information))
                                     {
-                                        var elapsed = DateTime.UtcNow - timestamp;
-                                        LogProcessed(logger, (long)elapsed.TotalMilliseconds, null);
+                                        LogProcessed(logger, watch.ElapsedMilliseconds, null);
                                     }
+
+                                    KafkaTelemetry.EndProcess(result, watch, activity);
                                 }
                             },
                             options.Value.MaxDegreeOfParallelism,

@@ -192,19 +192,19 @@
             Consumer.Seek(tpo);
         }
 
-        public ConsumeResult<TKey, TValue> Consume(int millisecondsTimeout)
+        public ConsumeResult<TKey, TValue>? Consume(int millisecondsTimeout)
         {
-            return Consumer.Consume(millisecondsTimeout);
+            return Consume(millisecondsTimeout, static (x, y) => x.Consume(y));
         }
 
-        public ConsumeResult<TKey, TValue> Consume(CancellationToken cancellationToken = default)
+        public ConsumeResult<TKey, TValue>? Consume(CancellationToken cancellationToken = default)
         {
-            return Consumer.Consume(cancellationToken);
+            return Consume(cancellationToken, static (x, y) => x.Consume(y));
         }
 
-        public ConsumeResult<TKey, TValue> Consume(TimeSpan timeout)
+        public ConsumeResult<TKey, TValue>? Consume(TimeSpan timeout)
         {
-            return Consumer.Consume(timeout);
+            return Consume(timeout, static (x, y) => x.Consume(y));
         }
 
         public void Pause(IEnumerable<TopicPartition> partitions)
@@ -296,6 +296,31 @@
             }
 
             consumer?.Dispose();
+        }
+
+        ConsumeResult<TKey, TValue>? Consume<TArg>(
+            TArg arg,
+            Func<IConsumer<TKey, TValue>, TArg, ConsumeResult<TKey, TValue>?> consumeFunc)
+        {
+            var target = Consumer;
+            ConsumeResult<TKey, TValue>? result;
+
+            try
+            {
+                result = consumeFunc(target, arg);
+            }
+            catch (ConsumeException exception)
+            {
+                KafkaTelemetry.Consume(exception);
+                throw;
+            }
+
+            if (result != null)
+            {
+                KafkaTelemetry.Consume(result);
+            }
+
+            return result;
         }
 
         sealed class DIBuilder : ConsumerBuilder<TKey, TValue>

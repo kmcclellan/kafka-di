@@ -1,6 +1,7 @@
 ﻿namespace Confluent.Kafka.Hosting
 {
     using System.Collections.Generic;
+    using System.Diagnostics;
 
     /// <summary>
     /// Options for consuming from Kafka in a hosted setting.
@@ -34,5 +35,13 @@
         /// Client configuration property <c>enable.auto.offset.store</c> must be set to <c>false</c>.
         /// </remarks>
         public bool StoreProcessedOffsets { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether consumer <see cref="Activity"/> tracing links to the producer instead of being its child.
+        /// </summary>
+        /// <remarks>
+        /// This can help to limit the size of activity trees (e.g. when there are many consumers of the same message).
+        /// </remarks>
+        public bool LinkActivities { get; set; }
     }
 }

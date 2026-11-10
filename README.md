@@ -157,9 +157,38 @@ Hosted consumer features:
       "Disabled": false,
       "Subscription": [ "my-topic" ],
       "MaxDegreeOfParallelism": 10,
-      "StoreProcessedOffsets": true
+      "StoreProcessedOffsets": true,
+      "LinkActivities": false
     }
   }
 }
 
+```
+
+### Observability
+
+This library includes some observability capabilities using `System.Diagnostics.Metrics` and `System.Diagnostics.Activity`. Listen using `Confluent.Kafka.DependencyInjection` as the activity source and/or meter name.  Context is propagated through Kafka message headers using `System.Diagnostics.DistributedContextPropagator.Current`.
+
+The following signals are instrumented based on [OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/messaging/).
+
+Spans:
+
+* `produce {topic}`
+* `process {topic}` [*]
+
+Metrics:
+
+* `messaging.client.sent.messages`
+* `messaging.client.consumed.messages`
+* `messaging.process.duration` [*]
+
+[*] _if using hosted consumer service_
+
+If using `OpenTelemetry.Extensions.Hosting`, configuration may look like:
+
+```c#
+// Export Kafka client traces and metrics.
+builder.Services.AddOpenTelemetry()
+    .WithTracing(x => x.AddSource("Confluent.Kafka.DependencyInjection").AddConsoleExporter())
+    .WithMetrics(x => x.AddMeter("Confluent.Kafka.DependencyInjection").AddConsoleExporter());
 ```
