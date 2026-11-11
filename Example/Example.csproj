@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -12,8 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.SchemaRegistry.Serdes.Json" Version="*" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="*" />
+    <PackageReference Include="Confluent.SchemaRegistry.Serdes.Json" Version="2.13.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>
