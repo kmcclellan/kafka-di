@@ -49,7 +49,7 @@
                     time = TimeProvider.System;
                 }
 
-                await time.Delay(delay, cancellationToken).ConfigureAwait(false);
+                await GetDelay(delay, time, cancellationToken).ConfigureAwait(false);
 
                 if (delay < PollMaxDelay)
                 {
@@ -163,7 +163,7 @@
 
                         while ((result = consumer.Consume(millisecondsTimeout: 0)) == null && exceptions.IsEmpty)
                         {
-                            await time.Delay(delay, cancellationToken).ConfigureAwait(false);
+                            await GetDelay(delay, time, cancellationToken).ConfigureAwait(false);
 
                             if (delay < PollMaxDelay)
                             {
@@ -286,6 +286,15 @@
             }
 
             return completion.Task;
+        }
+
+        static Task GetDelay(TimeSpan delay, TimeProvider time, CancellationToken cancellationToken)
+        {
+#if NET8_0_OR_GREATER
+            return Task.Delay(delay, time, cancellationToken);
+#else
+            return time.Delay(delay, cancellationToken);
+#endif
         }
 
         /// <summary>
