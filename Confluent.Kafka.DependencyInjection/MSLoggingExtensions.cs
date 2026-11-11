@@ -208,12 +208,17 @@
 
         static void LogError(ILogger logger, Error error, ClientLogValues values)
         {
-            logger.Log(
-                error.IsFatal ? LogLevel.Critical : LogLevel.Error,
-                eventId: default,
-                values,
-                exception: new KafkaException(error),
-                (x, y) => x.ToString());
+            var level = error.IsFatal ? LogLevel.Critical : LogLevel.Error;
+
+            if (logger.IsEnabled(level))
+            {
+                logger.Log(
+                    level,
+                    eventId: default,
+                    values,
+                    exception: new KafkaException(error),
+                    (x, y) => x.ToString());
+            }
         }
 
         readonly struct ClientLogValues : IReadOnlyList<KeyValuePair<string, object?>>
