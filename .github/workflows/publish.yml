@@ -1,8 +1,15 @@
 name: Publish to NuGet.org
-on: { release: { types: [ published ] } }
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
