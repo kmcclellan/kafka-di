@@ -17,7 +17,7 @@ jobs:
           dotnet-version: 11
 
       - name: Create package(s)
-        run: dotnet pack --version ${GITHUB_REF_NAME#v}
+        run: dotnet pack -property:Version=${GITHUB_REF_NAME#v}
 
       - name: NuGet login
         id: login
